@@ -1,0 +1,530 @@
+<template>
+  <div>
+    <!-- Atziri Exchange: the patrons banner of the original app is not shown -->
+    <div
+      :class="$style.window"
+      class="grow layout-column"
+      :onMouseenter="hidePodium"
+    >
+      <AppTitleBar @close="cancel" :title="t('settings.title')">
+        <!-- Atziri Exchange: back to the Market page of the Shift + Space hub -->
+        <button type="button" :class="$style.backBtn" @click="cancel">
+          ‹ Economy
+        </button>
+      </AppTitleBar>
+      <div class="flex grow min-h-0">
+        <div
+          class="pl-2 pt-2 bg-gray-900 flex flex-col gap-1"
+          style="min-width: 10rem"
+        >
+          <template v-for="item of menuItems">
+            <button
+              v-if="item.type === 'menu-item'"
+              @click="item.select"
+              :class="[
+                $style['menu-item'],
+                { [$style['active']]: item.isSelected },
+              ]"
+            >
+              {{ item.name }}
+            </button>
+            <div v-else class="border-b mx-2 border-gray-800" />
+          </template>
+          <button
+            v-if="menuItems.length >= 4"
+            :class="$style['quit-btn']"
+            @click="quit"
+          >
+            {{ t("app.quit") }}
+          </button>
+          <!-- <div
+            class="text-gray-400 text-center mt-auto pr-3 pt-4 pb-12"
+            style="max-width: fit-content; min-width: 100%"
+          >
+            <img class="mx-auto mb-1" src="/images/peepoLove2x.webp" />
+            {{ t("Support development on") }}<br />
+            <a
+              href="https://patreon.com/awakened_poe_trade"
+              class="inline-flex mt-1"
+              target="_blank"
+              ><img class="inline h-5" src="/images/Patreon.svg"
+            /></a>
+          </div> -->
+        </div>
+        <div class="text-gray-100 grow layout-column bg-gray-900">
+          <div class="grow overflow-y-auto atziri-bg rounded-tl">
+            <component
+              v-if="configClone"
+              :is="selectedComponent"
+              :config="configClone"
+              :configWidget="configWidget"
+            />
+          </div>
+          <div
+            class="border-t bg-gray-900 border-gray-600 p-2 flex justify-end gap-x-2"
+          >
+            <button @click="save" class="px-3 bg-gray-800 rounded">
+              {{ t("Save") }}
+            </button>
+            <button @click="cancel" class="px-3">{{ t("Cancel") }}</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script lang="ts">
+import {
+  defineComponent,
+  shallowRef,
+  computed,
+  Component,
+  PropType,
+  nextTick,
+  inject,
+  reactive,
+  watch,
+} from "vue";
+import { useI18n } from "vue-i18n";
+import {
+  AppConfig,
+  updateConfig,
+  saveConfig,
+  pushHostConfig,
+  Config,
+} from "@/web/Config";
+import { APP_PATRONS } from "@/assets/data";
+import { Host } from "@/web/background/IPC";
+import { tr } from "@/web/atziri-lang";
+import type {
+  Widget,
+  WidgetManager,
+  WidgetSpec,
+} from "@/web/overlay/interfaces";
+import AppTitleBar from "@/web/ui/AppTitlebar.vue";
+import SettingsHotkeys from "./hotkeys.vue";
+import SettingsAtziri from "./atziri-settings.vue";
+import SettingsChat from "./chat.vue";
+import SettingsGeneral from "./general.vue";
+import SettingsAbout from "./about.vue";
+import SettingsPricecheck from "../price-check/settings-price-check.vue";
+import SettingsItemcheck from "../item-check/settings-item-check.vue";
+import SettingsHelp from "./help.vue";
+import SettingsDebug from "./debug.vue";
+import SettingsMaps from "../map-check/settings-maps.vue";
+import SettingsStashSearch from "../stash-search/stash-search-editor.vue";
+import SettingsStopwatch from "../stopwatch/settings-stopwatch.vue";
+import SettingsItemSearch from "../item-search/settings-item-search.vue";
+import SettingsLeveling from "../leveling/settings-leveling.vue";
+import SettingsLibrary from "../library/settings-library.vue";
+import { disableWidget, enableWidget, findWidget } from "./utils";
+
+function shuffle<T>(array: T[]): T[] {
+  let currentIndex = array.length;
+  while (currentIndex !== 0) {
+    const randomIndex = Math.floor(Math.random() * currentIndex);
+    currentIndex--;
+    [array[currentIndex], array[randomIndex]] = [
+      array[randomIndex],
+      array[currentIndex],
+    ];
+  }
+  return array;
+}
+
+function quit() {
+  Host.sendEvent({
+    name: "CLIENT->MAIN::user-action",
+    payload: { action: "quit" },
+  });
+}
+
+export default defineComponent({
+  widget: {
+    type: "settings",
+    instances: "single",
+    initInstance: () => {
+      return {
+        wmId: 0,
+        wmType: "settings",
+        wmTitle: "{icon=fa-cog}",
+        wmWants: "hide",
+        wmZorder: "exclusive",
+        wmFlags: ["invisible-on-blur", "ignore-ui-visibility"],
+      };
+    },
+  } satisfies WidgetSpec,
+  components: { AppTitleBar },
+  props: {
+    config: {
+      type: Object as PropType<Widget>,
+      required: true,
+    },
+  },
+  setup(props) {
+    const wm = inject<WidgetManager>("wm")!;
+    const { t } = useI18n();
+
+    nextTick(() => {
+      props.config.wmWants = "hide";
+    });
+
+    const selectedComponent = shallowRef<Component>(SettingsAtziri);
+
+    const podiumVisible = shallowRef(false);
+    const patrons = shallowRef<Array<typeof APP_PATRONS>>([]);
+
+    const configClone = shallowRef<Config | null>(null);
+    watch(
+      () => props.config.wmWants,
+      (wmWants) => {
+        if (wmWants === "show") {
+          configClone.value = reactive(JSON.parse(JSON.stringify(AppConfig())));
+          patrons.value = [1, 2, 3, 4, 5].map((i) =>
+            shuffle(APP_PATRONS.filter((row) => row.style === i)),
+          );
+        } else {
+          configClone.value = null;
+          if (selectedWmId.value != null) {
+            selectedWmId.value = null;
+            selectedComponent.value = SettingsAtziri;
+          }
+          podiumVisible.value = false;
+        }
+      },
+    );
+
+    const selectedWmId = shallowRef<number | null>(null);
+    const configWidget = computed(() =>
+      configClone.value?.widgets.find((w) => w.wmId === selectedWmId.value),
+    );
+
+    watch(
+      () => props.config.wmFlags,
+      (wmFlags) => {
+        const flagStr = wmFlags.find((flag) =>
+          flag.startsWith("settings::widget="),
+        );
+        if (flagStr) {
+          const _wmId = Number(flagStr.split("=")[1]);
+          const _widget = wm.widgets.value.find((w) => w.wmId === _wmId)!;
+          selectedWmId.value = _wmId;
+          selectedComponent.value = menuByType(_widget.wmType)[0][0];
+          wm.setFlag(props.config.wmId, flagStr, false);
+        }
+      },
+      { deep: true },
+    );
+
+    watch(
+      // any widget that requires client log
+      () => configClone.value?.readClientLog,
+      (curr, prev) => {
+        if (curr === prev || curr === undefined) return;
+        const xpTracker = findWidget("experience-tracker", configClone.value!);
+        if (curr) {
+          // Show widgets requiring this setting
+          if (xpTracker) {
+            enableWidget(xpTracker);
+          }
+        } else {
+          // Hide widgets requiring this setting
+          if (xpTracker) {
+            disableWidget(xpTracker);
+          }
+        }
+      },
+    );
+
+    watch(
+      () =>
+        configClone.value?.enableAlphas &&
+        configClone.value?.alphas.includes("library"),
+      (curr) => {
+        if (curr === undefined) return;
+        const library = findWidget("library", configClone.value!);
+        if (!library) return;
+
+        if (curr) {
+          enableWidget(library);
+        } else {
+          disableWidget(library);
+        }
+      },
+    );
+
+    const menuItems = computed(() =>
+      flatJoin(
+        menuByType(configWidget.value?.wmType).map((group) =>
+          group.map((component) => ({
+            name:
+              component.name === "Atziri réglage"
+                ? tr("Atziri réglage", "Atziri settings")
+                : t(component.name!),
+            select() {
+              selectedComponent.value = component;
+            },
+            isSelected: selectedComponent.value === component,
+            type: "menu-item" as const,
+          })),
+        ),
+        () => ({ type: "separator" as const }),
+      ),
+    );
+
+    return {
+      t,
+      save() {
+        updateConfig(configClone.value!);
+        saveConfig();
+        pushHostConfig();
+
+        wm.hide(props.config.wmId);
+      },
+      cancel() {
+        wm.hide(props.config.wmId);
+      },
+      quit,
+      menuItems,
+      selectedComponent,
+      configClone,
+      configWidget,
+      patrons,
+      patronsString: computed(() => {
+        return [true, false].map((firstHalf) => {
+          return patrons.value
+            .flatMap((tier) => {
+              const half = Math.ceil(tier.length / 2);
+              tier = firstHalf ? tier.slice(0, half) : tier.slice(half);
+              return tier.map((e) => e.from);
+            })
+            .reverse()
+            .join(" • ");
+        });
+      }),
+      podiumVisible,
+      showPodium() {
+        podiumVisible.value = true;
+      },
+      hidePodium() {
+        podiumVisible.value = false;
+      },
+    };
+  },
+});
+
+function menuByType(type?: string) {
+  switch (type) {
+    case "stash-search":
+      return [[SettingsStashSearch]];
+    case "timer":
+      return [[SettingsStopwatch]];
+    case "item-check":
+      return [[SettingsItemcheck, SettingsMaps]];
+    case "price-check":
+      return [[SettingsPricecheck]];
+    case "item-search":
+      return [[SettingsItemSearch]];
+    case "library":
+      return [[SettingsLibrary]];
+    default:
+      return [
+        [SettingsAtziri],
+        [SettingsHotkeys, SettingsChat],
+        [SettingsGeneral],
+        [SettingsPricecheck, SettingsMaps, SettingsItemcheck],
+        [SettingsLeveling],
+        [SettingsHelp, SettingsDebug, SettingsAbout],
+      ];
+  }
+}
+
+function flatJoin<T, J>(arr: T[][], joinEl: () => J) {
+  const out: Array<T | J> = [];
+  for (const nested of arr) {
+    out.push(...nested);
+    out.push(joinEl());
+  }
+  return out.slice(0, -1);
+}
+</script>
+
+<style lang="postcss" module>
+/* Atziri Exchange: settings fill the Atziri frame of the Shift + Space page */
+.window {
+  position: absolute;
+  top: calc(var(--atz-y, 7vh) + 0.75rem);
+  /* !important: the global .layout-column class sets height: 100% */
+  height: calc(100vh - 2 * var(--atz-y, 7vh) - 2rem) !important;
+  left: calc(var(--atz-x, 10vw) + 1.5rem);
+  right: calc(var(--atz-x, 10vw) + 1.5rem);
+  overflow: hidden;
+  background: rgb(var(--c-gray-800) / 0.92);
+  /* no backdrop blur: costly without GPU acceleration, panels are opaque enough */
+  border: 1px solid rgb(var(--c-gray-700));
+  border-radius: 8px;
+  z-index: 2;
+
+  &:global {
+    animation-name: fadeIn;
+    animation-duration: 0.2s;
+  }
+}
+
+.backBtn {
+  font-family: "Cinzel", "Marcellus", Georgia, serif;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+  color: rgb(var(--c-blue-400));
+}
+
+.menu-item {
+  text-align: left;
+  @apply p-2;
+  line-height: 1;
+  @apply text-gray-600;
+  @apply rounded-l;
+
+  &:hover {
+    @apply text-gray-100;
+  }
+
+  &.active {
+    @apply text-gray-400;
+    @apply bg-gray-800;
+  }
+}
+
+.quit-btn {
+  @apply text-gray-600;
+  @apply border border-gray-800;
+  @apply p-1 mt-2 mr-2 rounded;
+
+  &:hover {
+    @apply text-red-400;
+    @apply border-red-400;
+  }
+}
+
+.patronsHorizontal {
+  @apply bg-gray-900 p-1 rounded gap-1;
+  position: absolute;
+  top: 40rem;
+  left: 0;
+  right: 0;
+  margin: 0 auto;
+  max-width: 50rem;
+  display: flex;
+
+  &:global {
+    animation-name: slideInDown;
+    animation-duration: 1s;
+  }
+}
+
+@keyframes slide {
+  0% {
+    transform: translate(0%, 0);
+  }
+
+  4% {
+    transform: translate(0%, 0);
+  }
+
+  100% {
+    transform: translate(-99%, 0);
+  }
+}
+
+.patronsLine {
+  display: inline-block;
+  animation: slide 64s linear infinite;
+}
+
+.podium {
+  display: flex;
+  position: absolute;
+  top: auto;
+  bottom: max(0px, calc((100% - 38rem) / 2 - 10rem));
+  align-items: flex-end;
+  width: 100%;
+  justify-content: center;
+  @apply gap-4 p-4;
+
+  &:global {
+    animation-name: fadeIn;
+    animation-duration: 1.5s;
+  }
+}
+
+.podium > div {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  min-width: min-content;
+}
+
+.podium > div:nth-child(1) {
+  max-width: 18rem;
+}
+
+.podium > div:nth-child(2) {
+  max-width: 16rem;
+}
+
+.podium > div:nth-child(3) {
+  flex-direction: column;
+  align-items: center;
+}
+
+.podium > div:nth-child(4) {
+  max-width: 24rem;
+}
+
+.podium > div:nth-child(5) {
+  max-width: 18rem;
+}
+
+.rating {
+  min-width: 3rem;
+  text-align: center;
+  white-space: nowrap;
+  @apply px-1 border;
+}
+
+.rating-1 {
+  background-color: rgb(0, 0, 0);
+  color: rgb(190, 178, 135);
+  border-color: currentColor;
+  @apply text-base;
+}
+
+.rating-2 {
+  background-color: rgb(210, 178, 135);
+  color: rgb(0, 0, 0);
+  border-color: currentColor;
+  @apply text-lg;
+}
+
+.rating-3 {
+  background-color: rgb(213, 159, 0);
+  color: rgb(0, 0, 0);
+  border-color: currentColor;
+  @apply text-lg;
+}
+
+.rating-4 {
+  background-color: rgb(240, 90, 35);
+  color: rgb(255, 255, 255);
+  border-color: currentColor;
+  @apply text-xl;
+}
+
+.rating-5 {
+  background-color: rgb(255, 255, 255);
+  color: rgb(255, 0, 0);
+  border-color: currentColor;
+  @apply text-2xl;
+}
+</style>

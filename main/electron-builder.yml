@@ -1,0 +1,38 @@
+appId: "local.atziri.exchange"
+productName: "Atziri Exchange"
+npmRebuild: false
+files:
+  - "package.json"
+  - from: "dist"
+    to: "."
+    filter: ["main.js", "vision.js"]
+  - from: "../renderer/dist"
+    to: "."
+extraMetadata:
+  main: "main.js"
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  installerIcon: "build/icons/icon.ico"
+  uninstallerIcon: "build/icons/icon.ico"
+  installerHeaderIcon: "build/icons/icon.ico"
+win:
+  icon: "build/icons/icon.ico"
+  # Skips the winCodeSign toolset, whose archive needs symlink rights on Windows
+  signAndEditExecutable: false
+  target:
+    - "nsis"
+    - "portable"
+linux:
+  target:
+    - "AppImage"
+mac:
+  target:
+    - target: "dmg"
+      arch:
+        - "universal"
+  identity: null
+  x64ArchFiles: "*"
+appImage:
+  executableArgs:
+    - "--sandbox"
