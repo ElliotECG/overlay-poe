@@ -31,7 +31,7 @@ const UPSTREAM_RELEASES =
 
 // Atziri Exchange's own releases (number of the build in this installer;
 // raise it with every new release: tag "v0.16.3-atziri.2", "...atziri.3"...)
-export const ATZIRI_BUILD = 1;
+export const ATZIRI_BUILD = 2;
 const ATZIRI_RELEASES =
   "https://api.github.com/repos/kinetrex123-boop/atziri-exchange/releases/latest";
 
