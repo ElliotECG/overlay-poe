@@ -41,14 +41,12 @@ Version personnelle d'[Exiled Exchange 2](https://github.com/Kvan7/Exiled-Exchan
 
 Il faut Node.js. Le plus simple : `construire.bat`.
 
-Étapes manuelles (l'icône du .exe demande une étape en plus, faute de droits de lien symbolique sur ce PC) :
+Étapes manuelles (l'icône d'Atziri est posée sur le .exe par `main/build/after-pack.cjs`) :
 
 ```
 cd renderer && npm install && npm run make-index-files && npm run build
 cd ../main && npm install && npm run build
-npx electron-builder build --win dir --publish never
-"%LOCALAPPDATA%\electron-builder\Cache\winCodeSign\<dossier>\rcedit-x64.exe" "dist\win-unpacked\Atziri Exchange.exe" --set-icon "build\icons\icon.ico"
-npx electron-builder build --win nsis --prepackaged "dist\win-unpacked" --publish never
+npx electron-builder build --win nsis --publish never
 ```
 
 L'installateur est créé dans `main\dist`. N'utilise pas Exiled Exchange 2 et Atziri Exchange en même temps : les deux interceptent les mêmes raccourcis.
