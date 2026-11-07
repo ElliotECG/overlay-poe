@@ -4,6 +4,10 @@ Overlay de prix pour **Path of Exile 2** : version personnelle d'[Exiled Exchang
 
 Outil de fan gratuit, non affilié à Grinding Gear Games. Les images d'Atziri appartiennent à Grinding Gear Games.
 
+## Présentation
+
+[![Présentation vidéo d'Atziri Exchange](docs-atziri/presentation.jpg)](https://github.com/kinetrex123-boop/atziri-exchange/releases/download/v0.16.3-atziri/atziri-exchange-presentation.mp4)
+
 ## Installer
 
 1. Télécharge **Atziri Exchange Setup** dans la page [Releases](../../releases/latest).
