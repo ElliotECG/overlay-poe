@@ -29,6 +29,25 @@ const CHECK_EVERY_MS = 3 * 60 * 60 * 1000;
 const UPSTREAM_RELEASES =
   "https://api.github.com/repos/Kvan7/Exiled-Exchange-2/releases/latest";
 
+// Atziri Exchange's own releases (number of the build in this installer;
+// raise it with every new release: tag "v0.16.3-atziri.2", "...atziri.3"...)
+export const ATZIRI_BUILD = 1;
+const ATZIRI_RELEASES =
+  "https://api.github.com/repos/kinetrex123-boop/atziri-exchange/releases/latest";
+
+/** "v0.16.3-atziri.2" -> 2, "v0.16.3-atziri" -> 1 */
+function atziriBuildOf(tag: string): number | undefined {
+  const m = /atziri(?:[.-]?(\d+))?/i.exec(tag);
+  if (!m) return undefined;
+  return m[1] ? parseInt(m[1], 10) : 1;
+}
+
+interface AtziriRelease {
+  build: number;
+  url: string;
+  checkedAt: number;
+}
+
 interface Upstream {
   version: string; // latest Exiled Exchange 2 release, e.g. "0.16.4"
   url: string;
@@ -48,6 +67,7 @@ interface State {
   langs: Record<string, LangState>;
   lastError?: string;
   upstream?: Upstream;
+  atziri?: AtziriRelease;
 }
 
 const cacheDir = () => path.join(app.getPath("userData"), "atziri-data");
@@ -303,11 +323,42 @@ async function checkUpstream(logger: Logger, force = false) {
   }
 }
 
+/** Looks for a newer Atziri Exchange installer on its GitHub Releases page */
+async function checkAtziriRelease(logger: Logger, force = false) {
+  const now = Date.now();
+  if (!force && state.atziri && now - state.atziri.checkedAt < CHECK_EVERY_MS) return;
+  try {
+    const res = await fetch(ATZIRI_RELEASES, {
+      headers: { Accept: "application/vnd.github+json" },
+    });
+    // 404 while the repository is private: nothing to report
+    if (!res.ok) return;
+    const rel = (await res.json()) as { tag_name?: string; html_url?: string };
+    const build = atziriBuildOf(rel.tag_name ?? "");
+    if (build == null) return;
+    state.atziri = {
+      build,
+      url:
+        typeof rel.html_url === "string" &&
+        rel.html_url.startsWith("https://github.com/kinetrex123-boop/atziri-exchange/")
+          ? rel.html_url
+          : "https://github.com/kinetrex123-boop/atziri-exchange/releases/latest",
+      checkedAt: now,
+    };
+    if (build > ATZIRI_BUILD) {
+      logger.write(`info [Atziri] a new Atziri Exchange version is available (build ${build}).`);
+    }
+  } catch (e) {
+    logger.write(`warn [Atziri] release check failed: ${(e as Error).message}`);
+  }
+}
+
 async function runChecks(langs: string[], logger: Logger, force = false) {
   if (checking) return;
   checking = true;
   try {
     await checkUpstream(logger, force);
+    await checkAtziriRelease(logger, force);
     for (const lang of new Set(langs)) {
       try {
         await updateLanguage(lang, logger, force);
@@ -359,6 +410,11 @@ function status() {
   const up = state.upstream;
   return {
     appVersion: app.getVersion(),
+    atziriBuild: ATZIRI_BUILD,
+    atziriUpdate:
+      state.atziri && state.atziri.build > ATZIRI_BUILD
+        ? { build: state.atziri.build, url: state.atziri.url }
+        : null,
     upstream:
       up && isNewer(up.version, app.getVersion())
         ? { version: up.version, url: up.url }

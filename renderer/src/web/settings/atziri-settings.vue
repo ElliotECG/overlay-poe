@@ -174,6 +174,20 @@
           {{ tr("Échec :", "Failed:") }} {{ dataStatus.lastError }}
         </div>
       </div>
+      <a
+        v-if="dataStatus?.atziriUpdate"
+        class="atz-upstream mb-2 block"
+        :href="dataStatus.atziriUpdate.url"
+        target="_blank"
+        rel="noreferrer"
+      >
+        {{
+          tr(
+            "Nouvelle version d'Atziri Exchange disponible : clique pour la télécharger.",
+            "A new Atziri Exchange version is available: click to download it.",
+          )
+        }}
+      </a>
       <div v-if="dataStatus?.upstream" class="atz-upstream mb-2">
         <template v-if="isFrench()">
           Nouvelle version d'Exiled Exchange 2 disponible ({{ dataStatus.upstream.version }}, tu as {{ dataStatus.appVersion }}).
@@ -385,6 +399,7 @@ const BG_NAMES_EN: Record<string, string> = {
 // --- Item and mod lists updates (main process routes /atziri-data/*) ---
 interface DataStatus {
   appVersion?: string;
+  atziriUpdate?: { build: number; url: string } | null;
   upstream?: { version: string; url: string } | null;
   pendingApply?: boolean;
   enabled: boolean;

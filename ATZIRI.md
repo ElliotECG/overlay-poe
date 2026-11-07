@@ -31,7 +31,7 @@ Version personnelle d'[Exiled Exchange 2](https://github.com/Kvan7/Exiled-Exchan
 - Listes d'objets et de mods mises à jour automatiquement depuis GitHub (vérification toutes les 3 h, fichiers validés avant usage, utilisés au démarrage suivant ou tout de suite avec « Appliquer maintenant »).
 - Vérifie aussi la dernière version d'Exiled Exchange 2 et signale dans Atziri réglage quand une nouvelle version du code est sortie (à intégrer à la main dans ce fork).
 - Economy : catégories et lignes lues en direct ; une catégorie inconnue reçoit un nom traduit mot à mot et l'icône de son premier objet.
-- Mises à jour automatiques de l'appli désactivées (l'original remplacerait cette version).
+- Mises à jour automatiques de l'appli désactivées (l'original remplacerait cette version). À la place, l'overlay vérifie les Releases du dépôt kinetrex123-boop/atziri-exchange et affiche un avis (Shift+Espace et Atziri réglage) quand un installateur plus récent est publié. Pour publier une nouvelle version : augmenter `ATZIRI_BUILD` dans `main/src/atziri-data.ts` et nommer la Release `v0.16.3-atziri.<numéro>`. L'avis ne fonctionne que si le dépôt est public.
 
 ### Sécurité
 - Le serveur local de l'appli (port fixe 41917, uniquement sur la machine) refuse toute requête venant d'un autre site web que la page de l'appli, y compris la connexion d'évènements qui peut taper au clavier dans le jeu.
