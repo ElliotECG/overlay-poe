@@ -102,6 +102,7 @@ import { useLeagues } from "@/web/background/Leagues";
 import { useClientLog } from "@/web/client-log/client-log";
 import DevWidget from "./DevWidget.vue";
 import MarketPrices from "./MarketPrices.vue";
+import { startDeathRecap } from "./atziri-death-recap";
 
 type WMID = Widget["wmId"];
 
@@ -183,6 +184,8 @@ export default defineComponent({
       lineQueue.push(...e.lines);
       processQueue();
     });
+    // Atziri Exchange: saves an NVIDIA Instant Replay clip at each death
+    startDeathRecap();
     function processQueue() {
       if (processing) return;
       processing = true;

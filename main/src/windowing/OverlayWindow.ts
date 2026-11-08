@@ -51,6 +51,11 @@ export class OverlayWindow {
         spellcheck: false,
       },
     });
+    // Atziri Exchange: the overlay is left out of screen captures, so the
+    // Death Recap videos (NVIDIA Instant Replay) show only the game. Side
+    // effect: it is also hidden in OBS, Discord screen sharing and Windows
+    // screenshots.
+    this.window.setContentProtection(true);
 
     this.window.setMenu(
       Menu.buildFromTemplate([

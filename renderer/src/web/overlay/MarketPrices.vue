@@ -33,6 +33,17 @@
         >
           <i class="fas ar-tabfa" :class="tab.icon"></i>{{ tab.label }}
         </button>
+        <button
+          type="button"
+          role="tab"
+          :aria-selected="hubTab === 'death'"
+          @click="hubTab = 'death'"
+        >
+          <i class="fas fa-skull ar-tabfa"></i>Death Recap
+          <span v-if="unseenDeaths" class="ar-badge" :title="tr('Nouvelles morts', 'New deaths')">{{
+            unseenDeaths
+          }}</span>
+        </button>
         <!-- Historique: icon only, far right -->
         <button
           type="button"
@@ -73,6 +84,7 @@
     />
 
     <HistoryPane v-if="hubTab === 'history'" />
+    <DeathRecapPane v-if="hubTab === 'death'" />
 
     <div v-show="hubTab === 'market'" class="ar-body">
       <fieldset class="ar-nav">
@@ -267,6 +279,8 @@ import { hubTab, WEB_TABS, openInHub } from "./atziri-hub";
 import { poeWebApi } from "@/web/Config";
 import WebPane from "./WebPane.vue";
 import HistoryPane from "./HistoryPane.vue";
+import DeathRecapPane from "./DeathRecapPane.vue";
+import { unseenDeaths } from "./atziri-death-recap";
 import ConverterBox from "./ConverterBox.vue";
 import { setRates } from "./atziri-money";
 import {
@@ -446,6 +460,7 @@ watch(
 const activeTabLabel = computed(() => {
   if (hubTab.value === "market") return "Economy";
   if (hubTab.value === "history") return tr("Historique", "History");
+  if (hubTab.value === "death") return "Death Recap";
   return WEB_TABS.find((t) => t.id === hubTab.value)?.label ?? "";
 });
 
@@ -1237,6 +1252,50 @@ const rows = computed(() => {
 .ar-hub .ar-threshold {
   width: 4rem;
   padding: 2px 6px;
+}
+
+/* Death Recap tab */
+.ar-dr-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+}
+
+.ar-dr-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--muted);
+}
+
+.ar-dr-status.is-recording .ar-dr-dot {
+  background: #e0362c;
+  box-shadow: 0 0 6px #e0362c;
+}
+
+.ar-dr-warn {
+  color: #e8a33a;
+}
+
+.ar-dr-row {
+  cursor: pointer;
+
+  &.is-selected {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+}
+
+.ar-dr-video {
+  width: 100%;
+  min-height: 0;
+  flex: 1;
+  max-height: 100%;
+  object-fit: contain;
+  background: #000;
+  border: 1px solid var(--line);
+  border-radius: 6px;
 }
 
 /* Historique tab */

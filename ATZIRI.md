@@ -11,7 +11,8 @@ Version personnelle d'[Exiled Exchange 2](https://github.com/Kvan7/Exiled-Exchan
 
 ### Page Shift+Espace
 - Grand cadre redimensionnable (poignée dans le coin bas-droit, double-clic pour revenir à la taille d'origine).
-- Onglets : **Economy** (prix poe.ninja en direct, favoris, alertes de prix, catégories déplaçables, uniques ouverts sur le trade), **PoEDB**, **Craft**, **poe.ninja**, **Trade** et **Historique** (icône à droite : derniers Ctrl+D et suivi de rentabilité).
+- Onglets : **Economy** (prix poe.ninja en direct, favoris, alertes de prix, catégories déplaçables, uniques ouverts sur le trade), **PoEDB**, **Craft**, **poe.ninja**, **Trade**, **Death Recap** et **Historique** (icône à droite : derniers Ctrl+D et suivi de rentabilité).
+- **Death Recap** : vidéo des 15 dernières secondes avant chaque mort, enregistrée par **NVIDIA Instant Replay** (fluide, encodée par la carte graphique). Quand le journal du jeu annonce la mort de ton personnage (« vient de mourir » / « has been slain », les morts des membres du groupe sont ignorées), l'overlay appuie 2 s plus tard sur le raccourci d'Instant Replay lu dans les réglages NVIDIA (Alt+F10 par défaut), déplace la nouvelle vidéo dans `Vidéos\Atziri Death Recap` (10 dernières gardées) et l'onglet affiche un badge. Il faut Instant Replay activé (Alt+Z), idéalement 30 s et le format H.264. L'overlay est masqué des captures d'écran (vidéos NVIDIA, OBS, Discord, captures Windows). Nécessite la lecture du journal du jeu ; désactivable dans l'onglet.
 - Convertisseur Divine / Chaos / Exalté en haut à droite.
 - Bloqueur de pub et de traqueurs (Ghostery) dans les onglets web uniquement.
 - Bouton Paramètres intégré au cadre. La petite fenêtre flottante, XP, Map rolling, Dump sorting, Cheat sheets et la recherche d'objets ont été retirés.

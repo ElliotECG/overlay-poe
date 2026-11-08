@@ -4,7 +4,7 @@ import { isFrench } from "@/web/atziri-lang";
 import { poeWebApi } from "@/web/Config";
 
 export type WebTabId = "poedb" | "craft" | "ninja" | "trade";
-export type HubTab = "market" | "history" | WebTabId;
+export type HubTab = "market" | "history" | "death" | WebTabId;
 
 export interface WebTab {
   id: WebTabId;

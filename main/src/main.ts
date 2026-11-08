@@ -19,6 +19,7 @@ import { FileWriter } from "./host-files/FileWriter";
 import { enableBrowserAdblock } from "./adblock";
 import { setupAtziriData } from "./atziri-data";
 import { setupAtziriAutostart, isAutostartEnabled } from "./atziri-autostart";
+import { setupAtziriDeathRecap } from "./atziri-death-recap";
 
 if (!app.requestSingleInstanceLock()) {
   app.exit();
@@ -162,6 +163,9 @@ app.on("browser-window-created", (_e, win) => {
         // Atziri Exchange: item/mod lists kept up to date from GitHub
         setupAtziriData(server, logger);
         setupAtziriAutostart(server);
+        // Atziri Exchange: video of the last seconds before each death
+        // (saved by NVIDIA Instant Replay)
+        setupAtziriDeathRecap(server, logger);
         const port = await startServer(appUpdater, logger);
         // TODO: move up (currently crashes)
         logger.write(`info ${os.type()} ${os.release} / v${app.getVersion()}`);
