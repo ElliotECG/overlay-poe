@@ -6,24 +6,31 @@ import { shallowRef } from "vue";
 export type BgSlot = "hub" | "price";
 
 export const BUILTIN_BACKGROUNDS: Array<{ id: string; label: string; url: string }> = [
-  { id: "temple", label: "Temple d'Atziri", url: "/images/atziri-bg.jpg" },
-  { id: "reine", label: "Reine Atziri", url: "/images/atziri-reine.jpg" },
+  { id: "ritualiste", label: "Ritualiste", url: "/images/ritualiste-bg.webp" },
 ];
 
-const DEFAULTS: Record<BgSlot, string> = { hub: "temple", price: "temple" };
+const DEFAULTS: Record<BgSlot, string> = { hub: "ritualiste", price: "ritualiste" };
 const STORAGE_KEY = "atziri-backgrounds";
+// former Atziri artworks, replaced by the Ritualist one
+const REMOVED = ["temple", "reine"];
 
 function load(): Record<BgSlot, string> {
   try {
     const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "null");
-    if (saved && typeof saved === "object") return { ...DEFAULTS, ...saved };
+    if (saved && typeof saved === "object") {
+      const out = { ...DEFAULTS, ...saved } as Record<BgSlot, string>;
+      for (const slot of Object.keys(DEFAULTS) as BgSlot[]) {
+        if (REMOVED.includes(out[slot])) out[slot] = DEFAULTS[slot];
+      }
+      return out;
+    }
   } catch {
     // ignore unreadable storage
   }
   return { ...DEFAULTS };
 }
 
-/** "temple" | "reine" | "none" | "upload:<file name>" for each slot */
+/** "ritualiste" | "none" | "upload:<file name>" for each slot */
 export const backgrounds = shallowRef<Record<BgSlot, string>>(load());
 
 export function backgroundUrl(value: string): string | null {

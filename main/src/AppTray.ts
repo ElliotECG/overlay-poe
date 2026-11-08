@@ -23,7 +23,7 @@ export class AppTray {
     }
 
     this.tray = new Tray(trayImage);
-    this.tray.setToolTip(`Atziri Exchange v${app.getVersion()}`);
+    this.tray.setToolTip(`My Ritualist Overlay v${app.getVersion()}`);
     this.rebuildMenu();
 
     server.onEventAnyClient("CLIENT->MAIN::user-action", ({ action }) => {

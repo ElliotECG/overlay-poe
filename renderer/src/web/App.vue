@@ -17,19 +17,19 @@ import OverlayWindow from "./overlay/OverlayWindow.vue";
 @tailwind utilities;
 
 .table-stripped tbody tr:nth-child(odd) {
-  background: #2a221b;
+  background: rgb(var(--c-gray-800));
 }
 
-/* Atziri Regex theme: display font for titles and headings */
+/* Ritualist theme: display font for titles and headings */
 .font-display,
 h1,
 h2,
 h3 {
-  font-family: "Cinzel", "Marcellus", Fontin, Georgia, serif;
+  font-family: "Inter", "Segoe UI", system-ui, sans-serif;
   letter-spacing: 0.02em;
 }
 
-/* Atziri Regex theme: darkened temple artwork behind the main windows */
+/* Ritualist theme: darkened Ritualist artwork behind the main windows */
 .atziri-bg {
   background-color: theme("colors.gray.800");
   background-image:
@@ -39,12 +39,12 @@ h3 {
       rgb(var(--c-gray-900) / 0.82) 45%,
       rgb(var(--c-gray-900) / 0.93) 100%
     ),
-    var(--atz-price-bg, url("/images/atziri-bg.jpg"));
+    var(--atz-price-bg, url("/images/ritualiste-bg.webp"));
   background-size: cover;
   background-position: center 40%;
 }
 
-/* Atziri theme: large framed artwork panel shown when the overlay is opened */
+/* Large framed artwork panel shown when the overlay is opened */
 .atziri-frame {
   position: absolute;
   top: var(--atz-y, 7vh);
@@ -52,36 +52,44 @@ h3 {
   left: var(--atz-x, 10vw);
   right: var(--atz-x, 10vw);
   pointer-events: none;
-  border: 2px solid theme("colors.blue.400");
+  /* sober frame; the artwork shows behind the header, then fades out */
+  border: 1px solid rgb(var(--c-gray-700));
   border-radius: 0.75rem;
   box-shadow:
     0 0 0 1px rgba(0, 0, 0, 0.6),
-    0 0 2.5rem rgb(var(--c-blue-400) / 0.25),
     0 1rem 3rem rgba(0, 0, 0, 0.7);
   background:
     linear-gradient(
       180deg,
-      rgb(var(--c-gray-900) / 0.2) 0%,
-      rgb(var(--c-gray-900) / 0.5) 100%
+      rgb(var(--c-gray-900) / 0.12) 0,
+      rgb(var(--c-gray-900) / 0.4) 100px,
+      rgb(var(--c-gray-900) / 0.93) 180px,
+      rgb(var(--c-gray-900) / 0.96) 100%
     ),
-    var(--atz-hub-bg, url("/images/atziri-bg.jpg")) center / cover no-repeat;
+    var(--atz-hub-bg, url("/images/ritualiste-bg.webp")) center top / cover no-repeat,
+    rgb(var(--c-gray-900));
   animation: atziri-frame-in 0.18s ease-out;
 }
 
 /* Corner handle to resize the Atziri frame (double-click resets the size) */
 .atziri-resize {
   position: absolute;
-  right: calc(var(--atz-x, 10vw) - 0.6rem);
-  bottom: calc(var(--atz-y, 7vh) - 0.6rem);
-  width: 1.4rem;
-  height: 1.4rem;
+  right: calc(var(--atz-x, 10vw) + 4px);
+  bottom: calc(var(--atz-y, 7vh) + 4px);
+  width: 1.1rem;
+  height: 1.1rem;
   z-index: 5;
   cursor: nwse-resize;
-  border-right: 3px solid theme("colors.blue.400");
-  border-bottom: 3px solid theme("colors.blue.400");
-  border-bottom-right-radius: 0.6rem;
-  filter: drop-shadow(0 0 4px rgb(var(--c-blue-400) / 0.6));
-  opacity: 0.85;
+  /* two discreet diagonal grip lines */
+  background: linear-gradient(
+    135deg,
+    transparent 46%,
+    rgb(var(--c-gray-400)) 46% 53%,
+    transparent 53% 70%,
+    rgb(var(--c-gray-400)) 70% 77%,
+    transparent 77%
+  );
+  opacity: 0.7;
 
   &:hover {
     opacity: 1;

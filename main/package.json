@@ -1,6 +1,6 @@
 {
   "name": "atziri-exchange",
-  "productName": "Atziri Exchange",
+  "productName": "My Ritualist Overlay",
   "version": "0.16.3",
   "private": true,
   "scripts": {

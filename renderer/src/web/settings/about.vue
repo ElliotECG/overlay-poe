@@ -2,7 +2,7 @@
   <div class="p-2 flex flex-col h-full items-center">
     <div class="flex flex-col items-center p-2 mb-4">
       <img class="w-12 h-12" src="/images/jeweler.png" />
-      <p class="text-base">Atziri Exchange</p>
+      <p class="text-base">My Ritualist Overlay</p>
       <p class="">{{ t("app.version", [version]) }}</p>
       <div class="flex gap-2">
         <a

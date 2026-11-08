@@ -20,6 +20,12 @@ import { enableBrowserAdblock } from "./adblock";
 import { setupAtziriData } from "./atziri-data";
 import { setupAtziriAutostart, isAutostartEnabled } from "./atziri-autostart";
 import { setupAtziriDeathRecap } from "./atziri-death-recap";
+import path from "node:path";
+
+// My Ritualist Overlay: the app was called "Atziri Exchange" before. Electron
+// names its data folder after the app, so the old folder is kept on purpose:
+// settings, theme, favorites, history and updated lists stay where they are.
+app.setPath("userData", path.join(app.getPath("appData"), "Atziri Exchange"));
 
 if (!app.requestSingleInstanceLock()) {
   app.exit();

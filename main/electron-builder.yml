@@ -1,7 +1,7 @@
 appId: "local.atziri.exchange"
-productName: "Atziri Exchange"
+productName: "My Ritualist Overlay"
 npmRebuild: false
-# Atziri Exchange: sets the Atziri icon on the exe (see the file)
+# sets the app icon on the exe (see the file)
 afterPack: "build/after-pack.cjs"
 files:
   - "package.json"

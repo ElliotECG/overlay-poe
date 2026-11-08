@@ -26,7 +26,7 @@ const emit = defineEmits<{
 <style lang="postcss" module>
 .titlebar {
   @apply bg-gray-900 text-blue-400;
-  font-family: "Cinzel", "Marcellus", Fontin, Georgia, serif;
+  font-family: "Inter", "Segoe UI", system-ui, sans-serif;
   border-bottom: 1px solid theme("colors.gray.700");
   display: flex;
   justify-content: space-between;

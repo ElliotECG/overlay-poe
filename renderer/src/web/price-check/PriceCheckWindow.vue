@@ -388,7 +388,7 @@ export default defineComponent({
 
     const leagues = useLeagues();
     const title = computed(
-      () => leagues.selectedId.value || "Atziri Exchange",
+      () => leagues.selectedId.value || "My Ritualist Overlay",
     );
     const stableOrbCost = computed(() =>
       xchgRate.value ? Math.round(xchgRate.value) : null,

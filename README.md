@@ -1,8 +1,8 @@
-# ![Atziri](./logo-atziri.png) Atziri Exchange
+# My Ritualist Overlay
 
-Overlay de prix pour **Path of Exile 2** : version personnelle d'[Exiled Exchange 2](https://github.com/Kvan7/Exiled-Exchange-2) de Kvan7 (licence MIT, voir [LICENSE](LICENSE)), habillée avec le thème Atziri Regex et enrichie d'une page Shift+Espace (Economy poe.ninja, PoEDB, Craft of Exile, Trade, historique).
+Overlay de prix pour **Path of Exile 2**, aux couleurs de la Ritualiste : version personnelle d'[Atziri Exchange](https://github.com/kinetrex123-boop/atziri-exchange), lui-même basé sur [Exiled Exchange 2](https://github.com/Kvan7/Exiled-Exchange-2) de Kvan7 (licence MIT, voir [LICENSE](LICENSE)), avec une page Shift+Espace (Economy poe.ninja, PoEDB, Craft of Exile, Trade, Death Recap, historique).
 
-Outil de fan gratuit, non affilié à Grinding Gear Games. Les images d'Atziri appartiennent à Grinding Gear Games.
+Outil de fan gratuit, non affilié à Grinding Gear Games. L'illustration de la Ritualiste appartient à Grinding Gear Games.
 
 ## Présentation
 

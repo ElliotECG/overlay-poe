@@ -204,7 +204,7 @@ export class OverlayWindow {
         // ----------------------
         "Path of Exile 2 is running with administrator rights.\n" +
           "\n" +
-          "You need to restart Atziri Exchange with administrator rights.",
+          "You need to restart My Ritualist Overlay with administrator rights.",
       );
     } else {
       this.server.sendEventTo("broadcast", {

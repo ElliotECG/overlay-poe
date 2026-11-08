@@ -260,7 +260,7 @@ export default defineComponent({
           group.map((component) => ({
             name:
               component.name === "Atziri réglage"
-                ? tr("Atziri réglage", "Atziri settings")
+                ? tr("Réglages Ritualiste", "Ritualist settings")
                 : t(component.name!),
             select() {
               selectedComponent.value = component;
@@ -373,7 +373,7 @@ function flatJoin<T, J>(arr: T[][], joinEl: () => J) {
 }
 
 .backBtn {
-  font-family: "Cinzel", "Marcellus", Georgia, serif;
+  font-family: "Inter", "Segoe UI", system-ui, sans-serif;
   letter-spacing: 0.06em;
   white-space: nowrap;
   color: rgb(var(--c-blue-400));

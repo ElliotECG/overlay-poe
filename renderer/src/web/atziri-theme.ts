@@ -12,35 +12,54 @@ export interface ThemeColors {
   accent: string; // highlights (gold by default)
 }
 
-// Skins of the Atziri Regex page
+// Ritualist themes: the night forest of the Ritualist artwork (indigo
+// neutrals, bone text), with one accent each taken from the same scene
+const RITUAL_NEUTRALS = {
+  bg: "#0b0c16",
+  surface: "#151629",
+  line: "#2f2d4c",
+  fg: "#e6e2d8",
+  muted: "#9d99b4",
+};
+
 export const THEME_PRESETS: Record<string, { label: string; colors: ThemeColors }> = {
-  braise: {
-    label: "Braise",
-    colors: { bg: "#0e0c0a", surface: "#1f1914", line: "#3b3025", fg: "#ebdfc6", muted: "#a8977b", accent: "#d8a24f" },
+  rituel: {
+    label: "Rituel",
+    colors: { ...RITUAL_NEUTRALS, accent: "#b57cf0" }, // ritual violet
   },
-  vaal: {
-    label: "Vaal",
-    colors: { bg: "#0a1110", surface: "#121c1b", line: "#264039", fg: "#dde9e3", muted: "#8ea79f", accent: "#56c9a6" },
+  cierge: {
+    label: "Cierge",
+    colors: { ...RITUAL_NEUTRALS, accent: "#e2a554" }, // candle flame
   },
-  sang: {
-    label: "Sang",
-    colors: { bg: "#110909", surface: "#1c1012", line: "#45232a", fg: "#f1e3df", muted: "#b49a96", accent: "#d24b40" },
+  brume: {
+    label: "Brume",
+    colors: { ...RITUAL_NEUTRALS, accent: "#8fb0e8" }, // forest mist
   },
-  delire: {
-    label: "Délire",
-    colors: { bg: "#0f0f13", surface: "#18181f", line: "#34333f", fg: "#e6e4ee", muted: "#9a97ab", accent: "#c3b8e8" },
+  sacrifice: {
+    label: "Sacrifice",
+    colors: { ...RITUAL_NEUTRALS, accent: "#cf4a5a" }, // blood on the blade
   },
 };
 
-export const DEFAULT_THEME = THEME_PRESETS.braise.colors;
+export const DEFAULT_THEME = THEME_PRESETS.rituel.colors;
 const STORAGE_KEY = "atziri-theme";
+
+// Former Atziri themes: someone still using one of them unchanged moves to
+// the Ritualist default; colors they customized are kept
+const OLD_PRESET_ACCENTS = ["#d8a24f", "#56c9a6", "#d24b40", "#c3b8e8"];
+const OLD_PRESET_BACKGROUNDS = ["#0e0c0a", "#0a1110", "#110909", "#0f0f13"];
 
 export const themeColors = shallowRef<ThemeColors>(loadTheme());
 
 function loadTheme(): ThemeColors {
   try {
     const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "null");
-    if (saved && typeof saved === "object") return { ...DEFAULT_THEME, ...saved };
+    if (saved && typeof saved === "object") {
+      const oldPreset =
+        OLD_PRESET_ACCENTS.includes(String(saved.accent).toLowerCase()) &&
+        OLD_PRESET_BACKGROUNDS.includes(String(saved.bg).toLowerCase());
+      if (!oldPreset) return { ...DEFAULT_THEME, ...saved };
+    }
   } catch {
     // ignore unreadable storage
   }

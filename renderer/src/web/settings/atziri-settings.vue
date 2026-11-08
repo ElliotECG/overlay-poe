@@ -183,8 +183,8 @@
       >
         {{
           tr(
-            "Nouvelle version d'Atziri Exchange disponible : clique pour la télécharger.",
-            "A new Atziri Exchange version is available: click to download it.",
+            "Nouvelle version d'Atziri Exchange (le projet d'origine) disponible : clique pour la voir.",
+            "A new Atziri Exchange version (the original project) is available: click to see it.",
           )
         }}
       </a>
@@ -222,7 +222,7 @@
   <!-- Overlay colors: applied immediately, remembered on this PC -->
   <div class="atz-palette">
     <div class="atz-palette-title">{{ tr("Couleurs de l'overlay", "Overlay colors") }}</div>
-    <div class="atz-palette-sub">{{ tr("Thèmes d'Atziri Regex", "Atziri Regex themes") }}</div>
+    <div class="atz-palette-sub">{{ tr("Thèmes de la Ritualiste", "Ritualist themes") }}</div>
     <div class="flex flex-wrap gap-2 mb-4">
       <button
         v-for="(preset, id) in THEME_PRESETS"
@@ -278,7 +278,7 @@
       ></button>
     </div>
     <button type="button" class="btn mt-3" @click="setTheme(DEFAULT_THEME)">
-      {{ tr("Réinitialiser (Braise)", "Reset (Ember)") }}
+      {{ tr("Réinitialiser (Rituel)", "Reset (Ritual)") }}
     </button>
 
     <!-- Background images -->
@@ -386,14 +386,13 @@ const COLOR_FIELDS: Array<{ key: keyof ThemeColors; label: string; labelEn: stri
   { key: "muted", label: "Texte secondaire", labelEn: "Secondary text" },
 ];
 const THEME_NAMES_EN: Record<string, string> = {
-  braise: "Ember",
-  vaal: "Vaal",
-  sang: "Blood",
-  delire: "Delirium",
+  rituel: "Ritual",
+  cierge: "Candle",
+  brume: "Mist",
+  sacrifice: "Sacrifice",
 };
 const BG_NAMES_EN: Record<string, string> = {
-  temple: "Atziri's Temple",
-  reine: "Queen Atziri",
+  ritualiste: "Ritualist",
 };
 
 // --- Item and mod lists updates (main process routes /atziri-data/*) ---
@@ -513,6 +512,8 @@ const selectedLabel = computed(
 );
 // light/vivid colors for accent and text, dark ones for backgrounds/borders
 const BRIGHT_SWATCHES = [
+  // Ritualist artwork: ritual violet, candle, mist, blood, bone, fog
+  "#b57cf0", "#e2a554", "#8fb0e8", "#cf4a5a", "#e6e2d8", "#9d99b4",
   "#d8a24f", "#e8c46a", "#f0d48a", "#c97a3a", "#e07b4f", "#d24b40",
   "#e2654f", "#ff8a5c", "#e7707a", "#d9584a", "#b8475e", "#c06cc4",
   "#c3b8e8", "#8f86e0", "#6aa8e8", "#4fb3d8", "#56c9a6", "#6cc086",
@@ -520,6 +521,8 @@ const BRIGHT_SWATCHES = [
   "#ffffff", "#d0c8b8", "#a8977b", "#8ea79f", "#b49a96", "#9a97ab",
 ];
 const DARK_SWATCHES = [
+  // Ritualist artwork: night forest indigos
+  "#0b0c16", "#151629", "#2f2d4c", "#1c1a33", "#24213f", "#3d3a63",
   "#0e0c0a", "#0a1110", "#110909", "#0f0f13", "#000000", "#121212",
   "#1f1914", "#121c1b", "#1c1012", "#18181f", "#1a1a1a", "#14181f",
   "#2a2119", "#16241f", "#2a1418", "#22222c", "#262626", "#1b2230",
@@ -686,7 +689,7 @@ const priceCheckHotkeys = computed<HotkeySchema[]>(() => [
 }
 
 .atz-palette-title {
-  font-family: "Cinzel", "Marcellus", Georgia, serif;
+  font-family: "Inter", "Segoe UI", system-ui, sans-serif;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: theme("colors.blue.400");

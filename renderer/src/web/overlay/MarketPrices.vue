@@ -1,16 +1,42 @@
 <template>
-  <!-- Atziri Exchange: Shift + Space hub, styled exactly like the Atziri Regex page (skin "braise") -->
+  <!-- My Ritualist Overlay: Shift + Space hub -->
   <div class="ar-hub" @click.stop>
     <header class="ar-top">
-      <button type="button" class="ar-settings-btn" @click="openSettings">
-        <i class="fas fa-cog"></i>
-        <span>{{ tr("Paramètres", "Settings") }}</span>
-      </button>
-      <div class="ar-brand">
-        <img class="ar-logo" src="/icon.png" alt="" width="64" height="64" />
-        <h1 class="ar-h1">{{ activeTabLabel }}</h1>
+      <div class="ar-topbar">
+        <div class="ar-brand">
+          <!-- Ritualist medallion (avatar picture) -->
+          <span class="ar-logo ar-logo-ritual" aria-hidden="true"></span>
+          <span class="ar-brand-name">Ritualist</span>
+        </div>
+        <div class="ar-top-right">
+          <ConverterBox />
+          <label class="ar-league">
+            <span>{{ tr("Ligue actuelle :", "Current league:") }}</span>
+            <select
+              :value="leagues.selectedId.value"
+              @change="setLeague(($event.target as HTMLSelectElement).value)"
+            >
+              <option
+                v-if="leagueName && !leagues.list.value.some((l) => l.id === leagueName)"
+                :value="leagueName"
+              >
+                {{ leagueName }}
+              </option>
+              <option v-for="l in leagues.list.value" :key="l.id" :value="l.id">
+                {{ l.text }}
+              </option>
+            </select>
+          </label>
+          <button
+            type="button"
+            class="ar-square-btn"
+            :title="tr('Paramètres', 'Settings')"
+            @click="openSettings"
+          >
+            <i class="fas fa-cog"></i>
+          </button>
+        </div>
       </div>
-      <ConverterBox class="ar-converter-pos" />
       <nav class="ar-tabs" role="tablist">
         <button
           type="button"
@@ -18,7 +44,7 @@
           :aria-selected="hubTab === 'market'"
           @click="hubTab = 'market'"
         >
-          <img class="ar-tabico" src="/images/tab-marche.webp" alt="" />Economy
+          <i class="fas fa-coins ar-tabfa"></i>{{ tr("Économie", "Economy") }}
           <span v-if="alertCount" class="ar-badge" :title="tr('Alertes de prix', 'Price alerts')">{{
             alertCount
           }}</span>
@@ -69,8 +95,8 @@
       <i class="fas fa-download"></i>
       {{
         tr(
-          "Nouvelle version d'Atziri Exchange disponible : clique pour la télécharger.",
-          "A new Atziri Exchange version is available: click to download it.",
+          "Nouvelle version d'Atziri Exchange (le projet d'origine) disponible : clique pour la voir.",
+          "A new Atziri Exchange version (the original project) is available: click to see it.",
         )
       }}
     </a>
@@ -88,7 +114,7 @@
 
     <div v-show="hubTab === 'market'" class="ar-body">
       <fieldset class="ar-nav">
-        <legend>{{ tr("Catégories", "Categories") }}</legend>
+        <legend>{{ tr("Marché", "Market") }}</legend>
         <button
           type="button"
           :aria-pressed="selectedType === FAV_TYPE"
@@ -128,11 +154,17 @@
 
       <section class="ar-main">
         <div class="ar-main-head">
-          <h2>{{ categoryLabel(selectedType) }}</h2>
+          <div class="ar-title-row">
+            <h2>{{ categoryLabel(selectedType) }}</h2>
+            <span class="ar-status" :class="loading ? 'is-loading' : 'is-ok'">
+              <span class="ar-dot"></span>
+              {{ loading ? tr("Chargement…", "Loading…") : tr("À jour", "Up to date") }}
+            </span>
+          </div>
           <div class="ar-sub">
-            {{ tr("7 j", "7 d") }} · {{ leagueName }}
+            {{ tr("Prix du marché", "Market prices") }} · poe.ninja{{ isLive ? tr(" (direct)", " (live)") : "" }}
+            · {{ leagueName }}
             <template v-if="updatedAtText"> · {{ updatedAtText }}</template>
-            · poe.ninja{{ isLive ? tr(" (direct)", " (live)") : "" }}
           </div>
           <div v-if="selectedType === FAV_TYPE" class="ar-fav-settings">
             {{ tr("Alerte si le prix bouge de plus de", "Alert when the price moves more than") }}
@@ -147,13 +179,37 @@
           </div>
         </div>
 
-        <input
-          v-model.trim="search"
-          type="text"
-          class="ar-search"
-          :placeholder="tr('Rechercher des objets...', 'Search items...')"
-          spellcheck="false"
-        />
+        <!-- exchange rates of the moment (poe.ninja) -->
+        <div v-if="rates.chaos" class="ar-rates">
+          <span class="ar-muted">{{ tr("Taux d'échange :", "Exchange rate:") }}</span>
+          <span class="ar-rate">
+            <img src="/images/divine.png" class="ar-cur" alt="" />
+            1 Divine = <b>{{ formatRate(rates.chaos) }}</b> Chaos
+          </span>
+          <span class="ar-rate-sep"></span>
+          <span class="ar-rate">
+            <img src="/images/chaos.png" class="ar-cur" alt="" />
+            1 Chaos = <b>{{ formatRate(1 / rates.chaos) }}</b> Divine
+          </span>
+          <template v-if="rates.exalted">
+            <span class="ar-rate-sep"></span>
+            <span class="ar-rate">
+              <img src="/images/exa.png" class="ar-cur" alt="" />
+              1 Divine = <b>{{ formatRate(rates.exalted) }}</b> {{ tr("Exaltés", "Exalted") }}
+            </span>
+          </template>
+        </div>
+
+        <div class="ar-searchbox">
+          <i class="fas fa-search"></i>
+          <input
+            v-model.trim="search"
+            type="text"
+            class="ar-search"
+            :placeholder="tr('Rechercher un objet...', 'Search an item...')"
+            spellcheck="false"
+          />
+        </div>
 
         <div v-if="!rows.length" class="ar-empty">
           <template v-if="loading">{{ tr("Chargement des prix…", "Loading prices…") }}</template>
@@ -180,7 +236,7 @@
             <button type="button" class="ar-sort" @click="setSort('volume')">
               Volume{{ sortMark("volume") }}
             </button>
-            <div class="ar-center">{{ tr("Historique", "History") }}</div>
+            <div class="ar-center">{{ tr("Tendance", "Trend") }}</div>
             <button type="button" class="ar-sort" @click="setSort('change')">
               {{ tr("7 j", "7 d") }}{{ sortMark("change") }}
             </button>
@@ -260,6 +316,14 @@
         </div>
       </section>
     </div>
+
+    <footer v-if="hubTab === 'market'" class="ar-foot">
+      <span>{{ tr("Source : poe.ninja", "Source: poe.ninja") }}</span>
+      <span class="ar-foot-live">
+        {{ tr("Actualisation automatique", "Auto refresh") }}
+        <span class="ar-dot"></span>
+      </span>
+    </footer>
   </div>
 </template>
 
@@ -272,7 +336,7 @@ import {
   shallowRef,
   watch,
 } from "vue";
-import { AppConfig } from "@/web/Config";
+import { AppConfig, saveConfig } from "@/web/Config";
 import { tr, isFrench, dateLocale } from "@/web/atziri-lang";
 import type { WidgetManager } from "./interfaces";
 import { hubTab, WEB_TABS, openInHub } from "./atziri-hub";
@@ -282,7 +346,7 @@ import HistoryPane from "./HistoryPane.vue";
 import DeathRecapPane from "./DeathRecapPane.vue";
 import { unseenDeaths } from "./atziri-death-recap";
 import ConverterBox from "./ConverterBox.vue";
-import { setRates } from "./atziri-money";
+import { setRates, rates } from "./atziri-money";
 import {
   favorites,
   alertThreshold,
@@ -456,15 +520,21 @@ watch(
   },
 );
 
-// Hub title follows the active tab
-const activeTabLabel = computed(() => {
-  if (hubTab.value === "market") return "Economy";
-  if (hubTab.value === "history") return tr("Historique", "History");
-  if (hubTab.value === "death") return "Death Recap";
-  return WEB_TABS.find((t) => t.id === hubTab.value)?.label ?? "";
-});
-
 const FAV_TYPE = "__favorites";
+
+// League picker of the header (same setting as in the settings page)
+function setLeague(id: string) {
+  if (!id || id === leagues.selectedId.value) return;
+  leagues.selectedId.value = id;
+  saveConfig();
+}
+
+/** 162.8 -> "162,8", 0.00614 -> "0,00614" */
+function formatRate(value: number) {
+  return value.toLocaleString(dateLocale(), {
+    maximumSignificantDigits: value >= 100 ? 4 : 3,
+  });
+}
 
 // Settings page: opens the settings widget inside the Atziri frame
 function openSettings() {
@@ -929,7 +999,7 @@ const rows = computed(() => {
 </script>
 
 <style lang="postcss">
-/* Values copied from the Atziri Regex page, skin "braise" */
+/* Ritualist theme: colors come from the theme variables (atziri-theme.ts) */
 .ar-hub {
   --bg: rgb(var(--c-gray-900));
   --surface: rgb(var(--c-gray-800) / 0.92);
@@ -938,11 +1008,13 @@ const rows = computed(() => {
   --muted: rgb(var(--c-gray-400));
   --accent: rgb(var(--c-blue-400));
   --accent-soft: rgb(var(--c-blue-900));
-  --ok: #9cc46f;
-  --bad: #d9584a;
-  --display: "Cinzel", "Marcellus", Georgia, serif;
-  --body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
-  --mono: "IBM Plex Mono", ui-monospace, Consolas, monospace;
+  --ok: #7fd38f;
+  --bad: #ec6b6b;
+  /* one modern sans-serif everywhere; tabular figures line numbers up */
+  --display: "Inter", "Segoe UI", system-ui, sans-serif;
+  --body: "Inter", "Segoe UI", system-ui, sans-serif;
+  --mono: "Inter", "Segoe UI", system-ui, sans-serif;
+  font-variant-numeric: tabular-nums;
 
   position: absolute;
   top: calc(var(--atz-y, 7vh) + 0.75rem);
@@ -972,66 +1044,94 @@ const rows = computed(() => {
   border-color: var(--accent);
 }
 
-/* header.top + .brand + .logo + h1 */
+/* Header: avatar and name on the left, converter, league and settings on the
+   right (the name never changes, so the avatar never moves) */
 .ar-top {
-  position: relative;
-  padding-block: 4px 0;
+  flex: none;
 }
 
-.ar-hub .ar-settings-btn {
-  position: absolute;
-  top: 4px;
-  left: 0;
-  display: inline-flex;
+.ar-topbar {
+  display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 6px 12px;
-  font-family: var(--display);
-  letter-spacing: 0.06em;
-  font-size: 0.95rem;
-  color: var(--muted);
-}
-
-.ar-hub .ar-settings-btn:hover {
-  color: var(--accent);
+  gap: 16px;
+  padding: 6px 4px 12px;
 }
 
 .ar-brand {
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 16px;
+  gap: 14px;
+  padding-right: 20px;
+  border-right: 1px solid var(--line);
+}
+
+.ar-brand-name {
+  font-size: 1.75rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.85);
+}
+
+.ar-top-right {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.ar-league {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 4px 0 14px;
+  height: 40px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgb(var(--c-gray-900) / 0.85);
+  font-size: 14px;
+
+  select {
+    height: 100%;
+    border: none;
+    background: transparent;
+    color: var(--fg);
+    font: inherit;
+    font-weight: 500;
+    cursor: pointer;
+    outline: none;
+  }
+
+  option {
+    background: var(--bg);
+  }
+}
+
+.ar-hub .ar-square-btn {
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border-radius: 8px;
+  background: rgb(var(--c-gray-900) / 0.85);
+  color: var(--fg);
+  font-size: 17px;
 }
 
 .ar-logo {
-  width: 64px;
-  height: 64px;
+  width: 56px;
+  height: 56px;
   border-radius: 50%;
   border: 2px solid var(--accent);
-  box-shadow:
-    0 0 0 4px rgba(0, 0, 0, 0.45),
-    0 0 22px color-mix(in srgb, var(--accent) 45%, transparent);
+  box-shadow: 0 0 18px color-mix(in srgb, var(--accent) 40%, transparent);
   object-fit: cover;
   flex: none;
 }
 
-.ar-h1 {
-  font-family: var(--display);
-  margin: 0;
-  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.9);
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-  font-weight: 700;
-  font-size: 1.7rem;
-}
-
-.ar-h1::after {
-  content: "";
+/* Ritualist avatar; slightly zoomed so the white corners of the picture,
+   outside its purple ring, never show */
+.ar-logo-ritual {
   display: block;
-  width: 120px;
-  height: 1px;
-  margin-top: 10px;
-  background: linear-gradient(90deg, var(--accent), transparent);
+  background: #0b0c16 url("/images/ritualist-avatar.png") no-repeat center;
+  background-size: 108%;
 }
 
 /* new version notice */
@@ -1052,36 +1152,39 @@ const rows = computed(() => {
   color: var(--accent);
 }
 
-/* .tabs */
+/* Tabs: flat, icon + name, the open one underlined in the accent color */
 .ar-tabs {
   display: flex;
-  gap: 4px;
-  margin-top: 14px;
+  gap: 2px;
+  padding: 0 4px;
   border-bottom: 1px solid var(--line);
+  background: rgb(var(--c-gray-900) / 0.8);
 }
 
 .ar-hub .ar-tabs button {
   flex: none;
   display: inline-flex;
   align-items: center;
-  gap: 7px;
-  border: 1px solid transparent;
-  border-bottom: none;
-  border-radius: 6px 6px 0 0;
+  gap: 10px;
+  border: none;
+  border-bottom: 3px solid transparent;
+  border-radius: 0;
   background: transparent;
-  color: var(--muted);
-  padding: 8px 16px;
-  font-family: var(--display);
-  letter-spacing: 0.06em;
-  font-size: 1.05rem;
+  color: rgb(var(--c-gray-300));
+  padding: 14px 18px 11px;
+  font-weight: 500;
+  font-size: 16px;
   margin-bottom: -1px;
 }
 
-.ar-hub .ar-tabs button[aria-selected="true"] {
-  background: var(--surface);
-  border-color: var(--line);
+.ar-hub .ar-tabs button:hover {
   color: var(--fg);
-  border-bottom: 1px solid var(--surface);
+}
+
+.ar-hub .ar-tabs button[aria-selected="true"] {
+  color: var(--fg);
+  font-weight: 600;
+  border-bottom-color: var(--accent);
 }
 
 .ar-tabico {
@@ -1092,21 +1195,15 @@ const rows = computed(() => {
   opacity: 0.75;
 }
 
-/* Converter, top right of the header */
-.ar-converter-pos {
-  position: absolute;
-  top: 4px;
-  right: 0;
-}
-
+/* Converter, in the header */
 .ar-converter {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 4px 8px;
+  padding: 3px 8px;
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: var(--surface);
+  background: rgb(var(--c-gray-900) / 0.85);
   font-family: var(--mono);
   font-size: 13px;
 }
@@ -1165,7 +1262,7 @@ const rows = computed(() => {
 
 .ar-hub .ar-tabs .ar-tab-icononly {
   margin-left: auto;
-  padding: 8px 14px;
+  padding: 14px 16px 11px;
   gap: 0;
 }
 
@@ -1203,7 +1300,7 @@ const rows = computed(() => {
   font-size: 11px;
   line-height: 1.2rem;
   text-align: center;
-  color: #120d08;
+  color: rgb(var(--c-gray-900));
   background: var(--accent);
 }
 
@@ -1422,96 +1519,215 @@ const rows = computed(() => {
   flex: 1;
   min-height: 0;
   display: flex;
-  gap: 16px;
-  padding-top: 16px;
+  gap: 20px;
+  padding-top: 18px;
 }
 
-/* fieldset + legend */
+/* Panels: opaque, so the artwork only shows in the header */
 .ar-hub fieldset,
 .ar-main {
   border: 1px solid var(--line);
-  border-radius: 8px;
-  background: var(--surface);
+  border-radius: 10px;
+  background: rgb(var(--c-gray-900) / 0.94);
   margin: 0;
-  padding: 12px 14px;
+  padding: 14px 16px;
   min-width: 0;
-  /* no backdrop blur: costly without GPU acceleration */
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.03),
-    0 1px 0 rgba(0, 0, 0, 0.4);
 }
 
+/* section names (Marché, ...): quiet capitals above the list */
 .ar-hub legend {
-  font-size: 12px;
+  float: left;
+  width: 100%;
+  margin-bottom: 8px;
+  padding: 2px 10px;
+  font-size: 13px;
+  font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: var(--accent);
-  opacity: 0.85;
-  padding: 0 4px;
+  color: rgb(var(--c-gray-300));
 }
 
 .ar-nav {
-  width: 14rem;
+  width: 17rem;
   flex: none;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 2px;
   overflow-y: auto;
 }
 
-/* .skinpick-like pressed buttons */
+/* category list: plain rows, the selected one tinted with a bar on its left */
 .ar-hub .ar-nav button {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
   text-align: left;
-  padding: 4px 10px;
-  font-size: 13.5px;
+  padding: 7px 12px;
+  border: none;
+  border-left: 3px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  font-size: 15px;
+  white-space: nowrap;
+}
+
+.ar-hub .ar-nav button:hover {
+  background: rgb(var(--c-gray-800) / 0.7);
 }
 
 .ar-catico {
-  width: 24px;
-  height: 24px;
+  width: 28px;
+  height: 28px;
   object-fit: contain;
   flex: none;
   filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.6));
 }
 
 .ar-hub .ar-nav button[aria-pressed="true"] {
-  border-color: var(--accent);
-  color: var(--accent);
-  background: var(--accent-soft);
+  color: var(--fg);
+  font-weight: 500;
+  border-left-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 22%, transparent);
 }
 
 .ar-main {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 14px;
+  border: none;
+  background: transparent;
+  padding: 2px 0 0;
+}
+
+.ar-title-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
 }
 
 .ar-main h2 {
   font-family: var(--display);
-  font-weight: 400;
+  font-weight: 700;
   margin: 0;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  font-size: 1.1rem;
+  font-size: 1.9rem;
+  letter-spacing: 0;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.8);
+}
+
+/* "À jour" status pill */
+.ar-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 3px 12px;
+  border-radius: 999px;
+  font-size: 13.5px;
+  border: 1px solid color-mix(in srgb, var(--ok) 45%, transparent);
+  background: color-mix(in srgb, var(--ok) 14%, transparent);
+  color: var(--ok);
+
+  &.is-loading {
+    border-color: var(--line);
+    background: var(--surface);
+    color: var(--muted);
+  }
+}
+
+.ar-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+  flex: none;
 }
 
 .ar-sub {
-  color: rgb(var(--c-gray-300));
-  font-size: 13px;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+  color: var(--muted);
+  font-size: 14px;
+  margin-top: 4px;
+}
+
+/* exchange rates strip */
+.ar-rates {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px 18px;
+  padding: 10px 16px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: rgb(var(--c-gray-900) / 0.94);
+  font-size: 14.5px;
+
+  b {
+    font-weight: 700;
+  }
+}
+
+.ar-rate {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ar-rate-sep {
+  width: 1px;
+  height: 20px;
+  background: var(--line);
+}
+
+/* search field with its magnifier */
+.ar-searchbox {
+  position: relative;
+
+  i {
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--muted);
+    pointer-events: none;
+  }
+
+  .ar-search {
+    width: 100%;
+    height: 44px;
+    padding-left: 40px;
+  }
 }
 
 .ar-search {
   font: inherit;
-  padding: 6px 8px;
+  padding: 6px 10px;
   border: 1px solid var(--line);
-  border-radius: 6px;
-  background: rgb(var(--c-gray-900) / 0.85);
+  border-radius: 8px;
+  background: rgb(var(--c-gray-900) / 0.94);
   color: var(--fg);
+}
+
+/* footer of the Economy tab */
+.ar-foot {
+  flex: none;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 12px;
+  padding: 10px 6px 0;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 13.5px;
+}
+
+.ar-foot-live {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-right: 28px;
+
+  .ar-dot {
+    color: var(--ok);
+  }
 }
 
 .ar-search:focus-visible {
@@ -1525,11 +1741,16 @@ const rows = computed(() => {
   color: var(--muted);
 }
 
+/* Table: one bordered block, rows split by thin lines */
 .ar-table {
   flex: 1;
   min-height: 0;
   display: flex;
   flex-direction: column;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: rgb(var(--c-gray-900) / 0.94);
+  overflow: hidden;
 }
 
 .ar-list {
@@ -1538,41 +1759,33 @@ const rows = computed(() => {
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding-right: 4px;
 }
 
-/* rows look like .favitem cards */
 .ar-row {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 12rem 5.5rem 7rem 5.5rem;
   align-items: center;
   gap: 12px;
-  padding: 6px 10px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: rgb(var(--c-gray-900) / 0.55);
+  padding: 7px 16px;
+  border-bottom: 1px solid rgb(var(--c-gray-700) / 0.6);
+  font-size: 15px;
 }
 
 .ar-row:hover {
-  border-color: color-mix(in srgb, var(--accent) 55%, var(--line));
+  background: rgb(var(--c-gray-800) / 0.8);
 }
 
 .ar-row--head {
-  border: none;
+  background: rgb(var(--c-gray-800) / 0.9);
   border-bottom: 1px solid var(--line);
-  border-radius: 0;
-  background: transparent;
-  font-size: 12px;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--muted);
-  padding-bottom: 8px;
-  margin-bottom: 6px;
+  color: rgb(var(--c-gray-300));
+  font-size: 14.5px;
+  font-weight: 600;
+  padding-block: 11px;
 }
 
 .ar-row--head:hover {
-  border-color: var(--line);
+  background: rgb(var(--c-gray-800) / 0.9);
 }
 
 .ar-hub .ar-sort {
@@ -1580,10 +1793,9 @@ const rows = computed(() => {
   background: transparent;
   padding: 0;
   text-align: right;
-  color: var(--muted);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  font-size: 12px;
+  color: rgb(var(--c-gray-300));
+  font-weight: 600;
+  font-size: 14.5px;
 }
 
 .ar-hub .ar-sort:hover {
@@ -1597,13 +1809,14 @@ const rows = computed(() => {
 .ar-item {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 14px;
+  font-weight: 500;
   min-width: 0;
 }
 
 .ar-icon {
-  width: 32px;
-  height: 32px;
+  width: 36px;
+  height: 36px;
   object-fit: contain;
   flex: none;
   filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.6));
@@ -1624,7 +1837,12 @@ const rows = computed(() => {
 }
 
 .ar-price-chaos {
-  color: var(--muted);
+  color: rgb(var(--c-gray-300));
+}
+
+/* the Divine price stands out, as in the mockup */
+.ar-price-cell:not(.ar-price-chaos) {
+  font-weight: 700;
 }
 
 .ar-cur {
@@ -1640,7 +1858,7 @@ const rows = computed(() => {
 .ar-num {
   text-align: right;
   font-family: var(--mono);
-  font-size: 13.5px;
+  font-size: 15px;
 }
 
 .ar-muted {
