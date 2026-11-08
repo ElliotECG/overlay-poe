@@ -6,7 +6,7 @@ Outil de fan gratuit, non affilié à Grinding Gear Games. Les images d'Atziri a
 
 ## Présentation
 
-[![Présentation vidéo d'Atziri Exchange](docs-atziri/presentation.jpg)](https://github.com/kinetrex123-boop/atziri-exchange/releases/download/v0.16.3-atziri/atziri-exchange-presentation.mp4)
+[![Présentation vidéo d'Atziri Exchange](docs-atziri/presentation.jpg)](https://youtu.be/GSPDDFeqdQ8)
 
 ## Installer
 
