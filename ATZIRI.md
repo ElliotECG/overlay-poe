@@ -11,7 +11,7 @@ Version personnelle d'[Exiled Exchange 2](https://github.com/Kvan7/Exiled-Exchan
 
 ### Page Shift+Espace
 - Grand cadre redimensionnable (poignée dans le coin bas-droit, double-clic pour revenir à la taille d'origine).
-- Onglets : **Economy** (prix poe.ninja en direct, favoris, alertes de prix, catégories déplaçables, uniques ouverts sur le trade), **PoEDB**, **Craft**, **poe.ninja**, **Trade**, **Regex ENG** (poe2.re), **Atziri Regex** (bouton « Coller dans le jeu »), et **Historique** (icône à droite : derniers Ctrl+D et suivi de rentabilité).
+- Onglets : **Economy** (prix poe.ninja en direct, favoris, alertes de prix, catégories déplaçables, uniques ouverts sur le trade), **PoEDB**, **Craft**, **poe.ninja**, **Trade** et **Historique** (icône à droite : derniers Ctrl+D et suivi de rentabilité).
 - Convertisseur Divine / Chaos / Exalté en haut à droite.
 - Bloqueur de pub et de traqueurs (Ghostery) dans les onglets web uniquement.
 - Bouton Paramètres intégré au cadre. La petite fenêtre flottante, XP, Map rolling, Dump sorting, Cheat sheets et la recherche d'objets ont été retirés.

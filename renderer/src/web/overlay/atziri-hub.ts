@@ -3,8 +3,8 @@ import { shallowRef, watch } from "vue";
 import { isFrench } from "@/web/atziri-lang";
 import { poeWebApi } from "@/web/Config";
 
-export type WebTabId = "poedb" | "craft" | "ninja" | "trade" | "regexeng";
-export type HubTab = "market" | "regex" | "history" | WebTabId;
+export type WebTabId = "poedb" | "craft" | "ninja" | "trade";
+export type HubTab = "market" | "history" | WebTabId;
 
 export interface WebTab {
   id: WebTabId;
@@ -32,12 +32,6 @@ export const WEB_TABS: WebTab[] = [
     label: "Trade",
     home: "https://www.pathofexile.com/trade2",
     icon: "fa-balance-scale",
-  },
-  {
-    id: "regexeng",
-    label: "Regex ENG",
-    home: "https://poe2.re/tablet",
-    icon: "fa-code",
   },
 ];
 

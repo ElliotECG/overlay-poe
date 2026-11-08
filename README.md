@@ -1,6 +1,6 @@
 # ![Atziri](./logo-atziri.png) Atziri Exchange
 
-Overlay de prix pour **Path of Exile 2** : version personnelle d'[Exiled Exchange 2](https://github.com/Kvan7/Exiled-Exchange-2) de Kvan7 (licence MIT, voir [LICENSE](LICENSE)), habillée avec le thème Atziri Regex et enrichie d'une page Shift+Espace (Economy poe.ninja, PoEDB, Craft of Exile, Trade, Regex, historique).
+Overlay de prix pour **Path of Exile 2** : version personnelle d'[Exiled Exchange 2](https://github.com/Kvan7/Exiled-Exchange-2) de Kvan7 (licence MIT, voir [LICENSE](LICENSE)), habillée avec le thème Atziri Regex et enrichie d'une page Shift+Espace (Economy poe.ninja, PoEDB, Craft of Exile, Trade, historique).
 
 Outil de fan gratuit, non affilié à Grinding Gear Games. Les images d'Atziri appartiennent à Grinding Gear Games.
 

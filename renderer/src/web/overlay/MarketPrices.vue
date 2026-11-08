@@ -33,14 +33,6 @@
         >
           <i class="fas ar-tabfa" :class="tab.icon"></i>{{ tab.label }}
         </button>
-        <button
-          type="button"
-          role="tab"
-          :aria-selected="hubTab === 'regex'"
-          @click="hubTab = 'regex'"
-        >
-          <img class="ar-tabico" src="/icon.png" alt="" />Atziri Regex
-        </button>
         <!-- Historique: icon only, far right -->
         <button
           type="button"
@@ -80,7 +72,6 @@
       :tab="tab"
     />
 
-    <RegexPane v-show="hubTab === 'regex'" />
     <HistoryPane v-if="hubTab === 'history'" />
 
     <div v-show="hubTab === 'market'" class="ar-body">
@@ -275,7 +266,6 @@ import type { WidgetManager } from "./interfaces";
 import { hubTab, WEB_TABS, openInHub } from "./atziri-hub";
 import { poeWebApi } from "@/web/Config";
 import WebPane from "./WebPane.vue";
-import RegexPane from "./RegexPane.vue";
 import HistoryPane from "./HistoryPane.vue";
 import ConverterBox from "./ConverterBox.vue";
 import { setRates } from "./atziri-money";
@@ -455,7 +445,6 @@ watch(
 // Hub title follows the active tab
 const activeTabLabel = computed(() => {
   if (hubTab.value === "market") return "Economy";
-  if (hubTab.value === "regex") return "Atziri Regex";
   if (hubTab.value === "history") return tr("Historique", "History");
   return WEB_TABS.find((t) => t.id === hubTab.value)?.label ?? "";
 });
@@ -1248,46 +1237,6 @@ const rows = computed(() => {
 .ar-hub .ar-threshold {
   width: 4rem;
   padding: 2px 6px;
-}
-
-/* Atziri Regex tab */
-.ar-hub .ar-paste {
-  flex: none;
-  font-family: var(--display);
-  letter-spacing: 0.04em;
-  border-color: var(--accent);
-  color: var(--accent);
-}
-
-.ar-regex-preview {
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  padding: 6px 10px;
-  border: 1px solid var(--line);
-  border-radius: 6px;
-  background: rgb(var(--c-gray-900) / 0.85);
-  font-family: var(--mono);
-  font-size: 13px;
-
-  &.is-empty {
-    color: var(--muted);
-    font-family: var(--body);
-  }
-}
-
-.ar-regex-msg {
-  flex: none;
-  color: var(--accent);
-  font-size: 13px;
-}
-
-.ar-regex-frame {
-  width: 100%;
-  border: 1px solid var(--line);
-  background: #0e0a09;
 }
 
 /* Historique tab */
