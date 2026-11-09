@@ -20,6 +20,7 @@ import { enableBrowserAdblock } from "./adblock";
 import { setupAtziriData } from "./atziri-data";
 import { setupAtziriAutostart, isAutostartEnabled } from "./atziri-autostart";
 import { setupAtziriDeathRecap } from "./atziri-death-recap";
+import { setupAtziriPob } from "./atziri-pob";
 import path from "node:path";
 
 // My Ritualist Overlay: the app was called "Atziri Exchange" before. Electron
@@ -172,6 +173,8 @@ app.on("browser-window-created", (_e, win) => {
         // Atziri Exchange: video of the last seconds before each death
         // (saved by NVIDIA Instant Replay)
         setupAtziriDeathRecap(server, logger);
+        // My Ritualist Overlay: compare an item with the build in Path of Building
+        setupAtziriPob(server, logger);
         const port = await startServer(appUpdater, logger);
         // TODO: move up (currently crashes)
         logger.write(`info ${os.type()} ${os.release} / v${app.getVersion()}`);

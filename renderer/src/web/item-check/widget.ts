@@ -8,6 +8,8 @@ export interface ItemCheckWidget extends Widget {
   craftOfExileKey: string | null;
   stashSearchKey: string | null;
   samePricedKey: string | null;
+  // My Ritualist Overlay: compare the item with the build in Path of Building
+  pobCompareKey?: string | null;
   samePricedType: "price" | "both";
   maps: MapCheckConfig;
 }

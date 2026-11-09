@@ -53,6 +53,8 @@
       >{{ logs }}</pre
     >
     <loading-animation />
+    <!-- My Ritualist Overlay: result of "Compare in PoB" -->
+    <PobCompareCard />
     <div
       v-if="showEditingNotification"
       class="widget-default-style p-6 bg-blue-600 mx-auto text-center text-base mt-6"
@@ -103,6 +105,7 @@ import { useClientLog } from "@/web/client-log/client-log";
 import DevWidget from "./DevWidget.vue";
 import MarketPrices from "./MarketPrices.vue";
 import { startDeathRecap } from "./atziri-death-recap";
+import PobCompareCard from "./PobCompareCard.vue";
 
 type WMID = Widget["wmId"];
 
@@ -111,6 +114,7 @@ export default defineComponent({
     LoadingAnimation,
     DevWidget,
     MarketPrices,
+    PobCompareCard,
   },
   setup() {
     usePoeninja();

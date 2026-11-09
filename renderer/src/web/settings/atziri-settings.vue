@@ -135,6 +135,73 @@
       <HotkeysGeneric :hotkeys="priceCheckHotkeys" />
     </div>
 
+    <!-- Compare in Path of Building (main process routes /atziri-pob/*) -->
+    <div class="atz-data mb-6">
+      <div class="mb-1">{{ tr("Comparer avec Path of Building", "Compare in Path of Building") }}</div>
+      <div class="text-gray-400 mb-3">
+        {{
+          tr(
+            "Survole un objet (chez un marchand, dans un coffre…) et appuie sur le raccourci : l'overlay calcule avec ton build l'effet sur ton DPS, ta vie, tes défenses et tes résistances.",
+            "Hover an item (in a merchant tab, a stash…) and press the shortcut: the overlay uses your build to show the effect on your DPS, life, defences and resistances.",
+          )
+        }}
+      </div>
+      <div class="flex mb-3">
+        <label class="flex-1">{{ tr("Raccourci", "Shortcut") }}</label>
+        <hotkey-input v-model="pobCompareKey" class="w-48" />
+      </div>
+      <div class="mb-1">{{ tr("Lien poe.ninja de ton personnage", "poe.ninja link of your character") }}</div>
+      <div class="flex gap-2 mb-2">
+        <input
+          v-model="pobUrl"
+          class="rounded bg-gray-900 px-2 py-1 flex-1"
+          placeholder="https://poe.ninja/poe2/profile/…/character/…"
+          spellcheck="false"
+        />
+        <button class="btn" :disabled="pobBusy" @click="pobImport">
+          {{ tr("Importer", "Import") }}
+        </button>
+      </div>
+      <div class="text-gray-400">
+        <div v-if="pobStatus && !pobStatus.pobFound" class="text-red-400">
+          {{ tr("Path of Building 2 n'est pas installé sur ce PC (il est nécessaire pour les calculs).", "Path of Building 2 is not installed on this PC (it does the calculations).") }}
+        </div>
+        <template v-if="pobBusy">{{ tr("Chargement du build…", "Loading the build…") }}</template>
+        <template v-else-if="pobStatus?.build">
+          <div>
+            {{ pobStatus.build.className }} {{ tr("niveau", "level") }} {{ pobStatus.build.level }} ·
+            {{ Math.round(pobStatus.build.stats.CombinedDPS || pobStatus.build.stats.TotalDPS || 0).toLocaleString(dateLocale()) }} DPS ·
+            {{ tr("vie", "life") }} {{ Math.round(pobStatus.build.stats.Life || 0).toLocaleString(dateLocale()) }}
+          </div>
+          <div class="flex items-center gap-2 mt-2">
+            <span>{{ tr("Compétence comparée :", "Compared skill:") }}</span>
+            <select
+              class="p-1 rounded bg-gray-700"
+              :value="pobStatus.build.mainSkill"
+              @change="pobSetSkill(Number(($event.target as HTMLSelectElement).value))"
+            >
+              <option v-for="s in pobStatus.build.skills" :key="s.index" :value="s.index">
+                {{ s.label }}
+              </option>
+            </select>
+            <button class="btn" :disabled="pobBusy" @click="pobRefresh">
+              {{ tr("Actualiser depuis poe.ninja", "Refresh from poe.ninja") }}
+            </button>
+          </div>
+          <div v-if="pobStatus.fetchedAt" class="mt-1">
+            {{ tr("Build récupéré le", "Build fetched on") }} {{ dayTime(pobStatus.fetchedAt) }}
+            {{ tr("(actualisé tout seul toutes les 30 min)", "(refreshed every 30 min)") }}
+          </div>
+        </template>
+        <template v-else-if="pobStatus?.profileUrl">
+          {{ tr("Le build sera chargé à la première comparaison.", "The build is loaded at the first comparison.") }}
+        </template>
+        <div v-if="pobStatus?.error" class="text-red-400 mt-1">
+          {{ tr("Échec :", "Failed:") }} {{ pobStatus.error }}
+        </div>
+      </div>
+    </div>
+
     <!-- Item tooltip on price hover -->
     <div class="mb-4">
       <div class="flex-1 mb-1">{{ t("price_check.use_tooltip_hover") }}</div>
@@ -434,6 +501,51 @@ async function dataAction(action: "check" | "reset") {
   } finally {
     dataBusy.value = false;
   }
+}
+
+// --- Compare in Path of Building (main process routes /atziri-pob/*) ---
+interface PobStatus {
+  pobFound: boolean;
+  profileUrl: string | null;
+  fetchedAt: number | null;
+  build: {
+    className?: string;
+    level?: number;
+    skills: Array<{ index: number; label: string }>;
+    mainSkill: number;
+    stats: Record<string, number>;
+  } | null;
+  error: string | null;
+}
+const pobStatus = shallowRef<PobStatus | null>(null);
+const pobUrl = shallowRef("");
+const pobBusy = shallowRef(false);
+const pobCompareKey = configModelValue(() => itemCheck.value, "pobCompareKey");
+
+async function pobCall(path: string, body?: unknown) {
+  pobBusy.value = true;
+  try {
+    const res = await fetch(`/atziri-pob/${path}`, body === undefined
+      ? undefined
+      : { method: "POST", body: JSON.stringify(body) });
+    pobStatus.value = await res.json();
+    if (pobStatus.value?.profileUrl && !pobUrl.value) pobUrl.value = pobStatus.value.profileUrl;
+  } catch {
+    // dev mode: no main-process routes
+  } finally {
+    pobBusy.value = false;
+  }
+}
+pobCall("status");
+
+function pobImport() {
+  pobCall("profile", { url: pobUrl.value });
+}
+function pobRefresh() {
+  pobCall("refresh", {});
+}
+function pobSetSkill(index: number) {
+  pobCall("skill", { index });
 }
 
 // --- Start with the game (main process route /atziri-autostart) ---

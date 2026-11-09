@@ -34,6 +34,7 @@ export default {
         craftOfExileKey: null,
         stashSearchKey: null,
         samePricedKey: null,
+        pobCompareKey: "Alt + D",
         samePricedType: "both",
         maps: {
           profile: 1,

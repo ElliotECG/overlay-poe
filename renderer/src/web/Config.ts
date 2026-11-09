@@ -107,6 +107,13 @@ export function atziriMigrations() {
   } catch {
     // ignore unavailable storage
   }
+
+  // "Compare in PoB" shortcut (Alt + D) for configs made before it existed
+  const itemCheck = AppConfig("item-check") as ItemCheckWidget | undefined;
+  if (itemCheck && itemCheck.pobCompareKey === undefined) {
+    itemCheck.pobCompareKey = "Alt + D";
+    saveConfig();
+  }
 }
 
 export function poeWebApi() {
@@ -754,6 +761,12 @@ function getConfigForHost(): HostConfig {
     actions.push({
       shortcut: itemCheck.poedbKey,
       action: { type: "copy-item", target: "open-poedb", focusOverlay: true },
+    });
+  }
+  if (itemCheck.pobCompareKey) {
+    actions.push({
+      shortcut: itemCheck.pobCompareKey,
+      action: { type: "copy-item", target: "pob-compare" },
     });
   }
   if (itemCheck.stashSearchKey) {

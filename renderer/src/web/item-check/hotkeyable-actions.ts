@@ -4,6 +4,7 @@ import { ItemRarity, ParsedItem, parseClipboard } from "@/parser";
 import { ItemCheckWidget } from "./widget";
 import { ARMOUR, ItemCategory } from "@/parser/meta";
 import { openInHub } from "@/web/overlay/atziri-hub";
+import { compareInPob, pobResult } from "@/web/overlay/atziri-pob";
 
 const POEDB_LANGS = {
   "en": "us",
@@ -92,14 +93,22 @@ export function registerActions() {
         "open-poedb",
         "search-similar",
         "search-same-priced",
+        "pob-compare",
       ].includes(e.target)
     ) {
       return;
     }
     const parsed = parseClipboard(e.clipboard);
-    if (!parsed.isOk()) return;
+    if (!parsed.isOk()) {
+      if (e.target === "pob-compare") {
+        pobResult.value = { ok: false, error: "unknown-base" };
+      }
+      return;
+    }
 
-    if (e.target === "open-wiki") {
+    if (e.target === "pob-compare") {
+      compareInPob(parsed.value);
+    } else if (e.target === "open-wiki") {
       openWiki(parsed.value);
     } else if (e.target === "open-craft-of-exile") {
       openCoE(parsed.value);

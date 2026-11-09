@@ -10,6 +10,11 @@ files:
     filter: ["main.js", "vision.js"]
   - from: "../renderer/dist"
     to: "."
+# "Compare in PoB": LuaJIT and the Path of Building server script, outside the
+# app archive so luajit.exe can run (see src/atziri-pob.ts, engineDir)
+extraResources:
+  - from: "pob"
+    to: "pob"
 extraMetadata:
   main: "main.js"
 nsis:

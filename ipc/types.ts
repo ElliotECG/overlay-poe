@@ -86,6 +86,7 @@ export type IpcEvent =
   | IpcSaveConfig
   | IpcUpdaterState
   | IpcGameLog
+  | IpcPobDismiss
   | IpcClientIsActive
   | IpcLogEntry
   | IpcHostConfig
@@ -209,6 +210,10 @@ type IpcGameLog = Event<
     lines: string[];
   }
 >;
+
+// My Ritualist Overlay: the player pressed Escape or moved away in game:
+// close the "Compare in PoB" card
+type IpcPobDismiss = Event<"MAIN->CLIENT::pob-dismiss">;
 
 type IpcReparseLog = Event<"CLIENT->MAIN::re-parse-log">;
 

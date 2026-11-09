@@ -84,6 +84,7 @@ if (!process.env.VITE_DEV_SERVER_URL) {
       req.url?.startsWith("/proxy") ||
       req.url?.startsWith("/atziri-data") ||
       req.url?.startsWith("/atziri-death") ||
+      req.url?.startsWith("/atziri-pob") ||
       // Atziri Exchange: updated item/mod lists already served
       (req as typeof req & { atziriHandled?: boolean }).atziriHandled
     )
