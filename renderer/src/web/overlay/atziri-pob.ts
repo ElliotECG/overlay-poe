@@ -8,6 +8,7 @@ import { shallowRef } from "vue";
 import { ItemRarity, type ParsedItem } from "@/parser";
 import { ModifierType } from "@/parser/modifiers";
 import type { ParsedStat } from "@/parser/stat-translations";
+import { Host } from "@/web/background/IPC";
 
 const INNATE_TYPES = new Set<ModifierType>([ModifierType.Implicit]);
 const ENCHANT_TYPES = new Set<ModifierType>([
@@ -143,6 +144,50 @@ export async function compareInPob(item: ParsedItem) {
   } finally {
     pobBusy.value = false;
   }
+}
+
+// ------------------------------------------ character played (game log)
+
+// "2026/11/08 21:36:09 1004763718 3ef232c2 [INFO Client 1157464] : Name ..."
+const LOG_LINE = /^(?<datetime>\d{4}\/\d{2}\/\d{2} \d{2}:\d{2}:\d{2}) \d+ \S+ \[[^\]]*\] : (?<text>.+)$/;
+// English and French clients
+const LEVEL_UP = /^(?<name>\S+) \([^)]+\) (?:is now level|a atteint le niveau|vient de passer au niveau) \d+\.?$/;
+const JOINED = /^(?<name>\S+) (?:has joined the area|a rejoint la zone)\.$/;
+// only ever about the player's own character
+const OWN_ONLY = /^(?<name>\S+) (?:has received |a reçu |has committed suicide\.|a mis fin à ses jours\.)/;
+// lines read again from an old part of the log are ignored
+const MAX_LOG_AGE_MS = 5 * 60 * 1000;
+
+const partyMembers = new Set<string>();
+let lastHint = "";
+
+function handleLogLine(line: string) {
+  const m = LOG_LINE.exec(line);
+  if (!m) return;
+  const text = m.groups!.text;
+  const joined = JOINED.exec(text);
+  if (joined) {
+    partyMembers.add(joined.groups!.name);
+    return;
+  }
+  // level-ups also show party members: only trust names that never joined
+  const name = OWN_ONLY.exec(text)?.groups!.name ?? LEVEL_UP.exec(text)?.groups!.name;
+  if (!name || partyMembers.has(name) || name === lastHint) return;
+  const at = Date.parse(m.groups!.datetime);
+  if (Number.isFinite(at) && Math.abs(Date.now() - at) > MAX_LOG_AGE_MS) return;
+  lastHint = name;
+  fetch("/atziri-pob/hint", { method: "POST", body: JSON.stringify({ name }) }).catch(() => {});
+}
+
+let watching = false;
+
+/** Tells the app which character is played, from the game log (auto mode) */
+export function startPobLogWatch() {
+  if (watching || !Host.isElectron) return;
+  watching = true;
+  Host.onEvent("MAIN->CLIENT::game-log", (e) => {
+    for (const line of e.lines) handleLogLine(line);
+  });
 }
 
 /** Main DPS figure: DPS of the main skill, with damage over time */

@@ -150,12 +150,26 @@
         <label class="flex-1">{{ tr("Raccourci", "Shortcut") }}</label>
         <hotkey-input v-model="pobCompareKey" class="w-48" />
       </div>
-      <div class="mb-1">{{ tr("Lien poe.ninja de ton personnage", "poe.ninja link of your character") }}</div>
+      <div class="flex flex-col gap-1 mb-2">
+        <ui-radio :model-value="pobMode" value="auto" @update:model-value="pobMode = 'auto'">
+          {{ tr("Personnage joué, automatiquement", "Character being played, automatically") }}
+        </ui-radio>
+        <ui-radio :model-value="pobMode" value="manual" @update:model-value="pobMode = 'manual'">
+          {{ tr("Toujours le même personnage", "Always the same character") }}
+        </ui-radio>
+      </div>
+      <div class="mb-1">
+        {{
+          pobMode === "auto"
+            ? tr("Ton compte poe.ninja (lien de ton profil ou d'un de tes personnages)", "Your poe.ninja account (link to your profile or one of your characters)")
+            : tr("Lien poe.ninja du personnage", "poe.ninja link of the character")
+        }}
+      </div>
       <div class="flex gap-2 mb-2">
         <input
           v-model="pobUrl"
           class="rounded bg-gray-900 px-2 py-1 flex-1"
-          placeholder="https://poe.ninja/poe2/profile/…/character/…"
+          :placeholder="pobMode === 'auto' ? 'https://poe.ninja/poe2/profile/…' : 'https://poe.ninja/poe2/profile/…/character/…'"
           spellcheck="false"
         />
         <button class="btn" :disabled="pobBusy" @click="pobImport">
@@ -165,6 +179,17 @@
       <div class="text-gray-400">
         <div v-if="pobStatus && !pobStatus.pobFound" class="text-red-400">
           {{ tr("Path of Building 2 n'est pas installé sur ce PC (il est nécessaire pour les calculs).", "Path of Building 2 is not installed on this PC (it does the calculations).") }}
+        </div>
+        <div v-if="pobMode === 'auto' && pobStatus?.character" class="mb-1">
+          {{ tr("Personnage suivi :", "Followed character:") }}
+          <b class="text-gray-200">{{ pobStatus.character.name }}</b>
+          ({{ pobStatus.character.league }})
+          ·
+          {{
+            pobStatus.character.fromLog
+              ? tr("repéré dans le journal du jeu", "seen in the game log")
+              : tr("personnage actuel sur poe.ninja", "current character on poe.ninja")
+          }}
         </div>
         <template v-if="pobBusy">{{ tr("Chargement du build…", "Loading the build…") }}</template>
         <template v-else-if="pobStatus?.build">
@@ -506,6 +531,15 @@ async function dataAction(action: "check" | "reset") {
 // --- Compare in Path of Building (main process routes /atziri-pob/*) ---
 interface PobStatus {
   pobFound: boolean;
+  mode: "auto" | "manual";
+  account: string | null;
+  character: {
+    name: string;
+    level: number;
+    league: string;
+    className: string;
+    fromLog: boolean;
+  } | null;
   profileUrl: string | null;
   fetchedAt: number | null;
   build: {
@@ -520,6 +554,7 @@ interface PobStatus {
 const pobStatus = shallowRef<PobStatus | null>(null);
 const pobUrl = shallowRef("");
 const pobBusy = shallowRef(false);
+const pobMode = shallowRef<"auto" | "manual">("auto");
 const pobCompareKey = configModelValue(() => itemCheck.value, "pobCompareKey");
 
 async function pobCall(path: string, body?: unknown) {
@@ -528,8 +563,15 @@ async function pobCall(path: string, body?: unknown) {
     const res = await fetch(`/atziri-pob/${path}`, body === undefined
       ? undefined
       : { method: "POST", body: JSON.stringify(body) });
-    pobStatus.value = await res.json();
-    if (pobStatus.value?.profileUrl && !pobUrl.value) pobUrl.value = pobStatus.value.profileUrl;
+    const s = (await res.json()) as PobStatus;
+    pobStatus.value = s;
+    if (!pobUrl.value) {
+      pobMode.value = s.mode ?? "auto";
+      pobUrl.value =
+        pobMode.value === "auto" && s.account
+          ? `https://poe.ninja/poe2/profile/${s.account}`
+          : s.profileUrl ?? "";
+    }
   } catch {
     // dev mode: no main-process routes
   } finally {
@@ -539,7 +581,7 @@ async function pobCall(path: string, body?: unknown) {
 pobCall("status");
 
 function pobImport() {
-  pobCall("profile", { url: pobUrl.value });
+  pobCall("profile", { url: pobUrl.value, mode: pobMode.value });
 }
 function pobRefresh() {
   pobCall("refresh", {});

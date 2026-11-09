@@ -7,6 +7,9 @@
 //
 // - The build comes from the character's poe.ninja page (its Path of Building
 //   export), refreshed when it is older than 30 minutes.
+// - Automatic mode follows the character being played: the one the game log
+//   shows (level-ups of non-party players, quest rewards), else the account's
+//   current character (★) on poe.ninja.
 // - The calculations run in the user's installed Path of Building 2, started
 //   without its window by LuaJIT (main/pob/pob-server.lua).
 import { app } from "electron";
@@ -37,6 +40,15 @@ function engineDir() {
 }
 
 interface Settings {
+  /**
+   * "auto": the character currently played on the account (poe.ninja ★ and
+   * the game log); "manual": always the character of profileUrl
+   */
+  mode?: "auto" | "manual";
+  /** poe.ninja account, e.g. "solana-2049" */
+  account?: string;
+  /** name of the last character the game log showed as being played */
+  logCharacter?: string;
   profileUrl?: string;
   /** label of the chosen main skill (indexes change when the build changes) */
   skill?: string;
@@ -52,6 +64,11 @@ function loadSettings() {
     settings = JSON.parse(fs.readFileSync(settingsFile(), "utf8"));
   } catch {
     settings = {};
+  }
+  // settings from before the automatic mode: follow the account of the link
+  if (!settings.mode && settings.profileUrl) {
+    settings.account = parseAccount(settings.profileUrl) ?? undefined;
+    settings.mode = settings.account ? "auto" : "manual";
   }
 }
 
@@ -95,12 +112,66 @@ export function parseProfileUrl(url: string): NinjaProfile | null {
   };
 }
 
+// The poe.ninja API wants a number at the end of its addresses; any value
+// works, it only splits caches: a new one every minute gives fresh data
+const cacheKey = () => Math.floor(Date.now() / 60_000);
+
+/** Account part of a poe.ninja link (profile or character page) */
+export function parseAccount(url: string): string | null {
+  const m = /poe\.ninja\/poe2\/profile\/([^/?#]+)/i.exec(url.trim());
+  return m ? decodeURIComponent(m[1]) : null;
+}
+
+interface NinjaCharacter {
+  name: string;
+  level: number;
+  league: string;
+  leagueUrl: string;
+  className: string;
+  isCurrent?: boolean;
+  updated?: string;
+}
+
+const CHARACTERS_MAX_AGE_MS = 2 * 60 * 1000;
+let characters: { account: string; at: number; list: NinjaCharacter[] } | null = null;
+
+/** Characters of the account on poe.ninja (★ isCurrent: the one played) */
+async function fetchCharacters(account: string): Promise<NinjaCharacter[]> {
+  if (characters?.account === account && Date.now() - characters.at < CHARACTERS_MAX_AGE_MS) {
+    return characters.list;
+  }
+  const url =
+    `https://poe.ninja/poe2/api/profile/characters/${encodeURIComponent(account)}/${cacheKey()}`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`poe.ninja ${res.status}`);
+  const list = (await res.json()) as NinjaCharacter[];
+  characters = { account, at: Date.now(), list };
+  return list;
+}
+
+/**
+ * Character to compare with, in automatic mode: the one the game log shows
+ * (when poe.ninja knows it), else the account's current character.
+ */
+async function pickCurrentCharacter(account: string): Promise<NinjaCharacter | null> {
+  const list = await fetchCharacters(account);
+  const fromLog = settings.logCharacter
+    ? list.find((c) => c.name === settings.logCharacter)
+    : undefined;
+  return fromLog ?? list.find((c) => c.isCurrent) ?? null;
+}
+
+function profileUrlOf(account: string, c: NinjaCharacter) {
+  const e = encodeURIComponent;
+  return `https://poe.ninja/poe2/profile/${e(account)}/${e(c.leagueUrl)}/character/${e(c.name)}`;
+}
+
 /** Path of Building XML of the character, from its poe.ninja page */
 async function fetchBuildXml(profile: NinjaProfile): Promise<string> {
   const e = encodeURIComponent;
   const url =
     `https://poe.ninja/poe2/api/profile/characters/${e(profile.account)}/` +
-    `${e(profile.league)}/${e(profile.name)}/model/80`;
+    `${e(profile.league)}/${e(profile.name)}/model/${cacheKey()}`;
   const res = await fetch(url);
   if (!res.ok) throw new Error(`poe.ninja ${res.status}`);
   const data = (await res.json()) as {
@@ -221,8 +292,36 @@ async function ask(logger: Logger, req: object, timeoutMs: number): Promise<Engi
 
 // ------------------------------------------------------------ the build
 
+let currentCharacter: NinjaCharacter | null = null;
+
+/**
+ * Automatic mode: follows the character being played. Switches the build
+ * when it is another character than the loaded one.
+ */
+async function followCurrentCharacter(logger: Logger) {
+  if (settings.mode !== "auto" || !settings.account) return;
+  try {
+    const current = await pickCurrentCharacter(settings.account);
+    if (!current) return;
+    currentCharacter = current;
+    const url = profileUrlOf(settings.account, current);
+    if (url !== settings.profileUrl) {
+      logger.write(`info [PoB] now comparing with ${current.name} (${current.league}).`);
+      settings.profileUrl = url;
+      settings.skill = undefined;
+      settings.fetchedAt = undefined;
+      saveSettings();
+      buildSummary = null;
+    }
+  } catch (e) {
+    // poe.ninja unreachable: keep the current build
+    logger.write(`warn [PoB] character list failed: ${(e as Error).message}`);
+  }
+}
+
 /** Loads the saved build in the engine, refreshing it from poe.ninja if old */
 async function ensureBuild(logger: Logger, forceRefresh = false): Promise<EngineAnswer> {
+  await followCurrentCharacter(logger);
   if (!settings.profileUrl) return { ok: false, error: "no-profile" };
   const profile = parseProfileUrl(settings.profileUrl);
   if (!profile) return { ok: false, error: "bad-profile-url" };
@@ -262,6 +361,17 @@ function status() {
   return {
     pobFound: pobDir != null,
     pobDir,
+    mode: settings.mode ?? "auto",
+    account: settings.account ?? null,
+    character: currentCharacter
+      ? {
+          name: currentCharacter.name,
+          level: currentCharacter.level,
+          league: currentCharacter.league,
+          className: currentCharacter.className,
+          fromLog: currentCharacter.name === settings.logCharacter,
+        }
+      : null,
     profileUrl: settings.profileUrl ?? null,
     fetchedAt: settings.fetchedAt ?? null,
     build: buildSummary?.ok
@@ -309,17 +419,42 @@ async function handle(url: string, req: IncomingMessage, logger: Logger): Promis
     return status();
   }
   if (url.startsWith("/atziri-pob/profile") && req.method === "POST") {
-    const { url: profileUrl } = JSON.parse(await readBody(req)) as { url?: string };
-    if (!profileUrl || !parseProfileUrl(profileUrl)) {
-      return { ...status(), error: "bad-profile-url" };
+    const body = JSON.parse(await readBody(req)) as { url?: string; mode?: "auto" | "manual" };
+    const mode = body.mode ?? settings.mode ?? "auto";
+    const link = body.url?.trim() ?? "";
+    if (mode === "auto") {
+      // the account is enough: a profile or a character link both work
+      const account = parseAccount(link) ?? link.replace(/#/g, "-");
+      if (!account || /[\s/]/.test(account)) return { ...status(), error: "bad-profile-url" };
+      settings.account = account;
+      characters = null;
+    } else {
+      if (!parseProfileUrl(link)) return { ...status(), error: "bad-profile-url" };
+      settings.profileUrl = link;
+      settings.account = parseAccount(link) ?? settings.account;
     }
-    settings.profileUrl = profileUrl.trim();
+    settings.mode = mode;
     settings.skill = undefined;
     settings.fetchedAt = undefined;
     saveSettings();
     buildSummary = null;
+    currentCharacter = null;
     await ensureBuild(logger, true);
     return status();
+  }
+  if (url.startsWith("/atziri-pob/hint") && req.method === "POST") {
+    // the game log shows which character is being played
+    const { name } = JSON.parse(await readBody(req)) as { name?: string };
+    if (name && name !== settings.logCharacter) {
+      settings.logCharacter = name;
+      saveSettings();
+      if (settings.mode === "auto" && name !== currentCharacter?.name) {
+        characters = null; // the new character may be missing from the cached list
+        // load the new build now, so the next comparison is quick
+        ensureBuild(logger).catch(() => {});
+      }
+    }
+    return { ok: true };
   }
   if (url.startsWith("/atziri-pob/refresh") && req.method === "POST") {
     await ensureBuild(logger, true);

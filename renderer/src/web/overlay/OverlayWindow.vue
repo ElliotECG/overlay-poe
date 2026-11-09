@@ -105,6 +105,7 @@ import { useClientLog } from "@/web/client-log/client-log";
 import DevWidget from "./DevWidget.vue";
 import MarketPrices from "./MarketPrices.vue";
 import { startDeathRecap } from "./atziri-death-recap";
+import { startPobLogWatch } from "./atziri-pob";
 import PobCompareCard from "./PobCompareCard.vue";
 
 type WMID = Widget["wmId"];
@@ -190,6 +191,8 @@ export default defineComponent({
     });
     // Atziri Exchange: saves an NVIDIA Instant Replay clip at each death
     startDeathRecap();
+    // My Ritualist Overlay: follow the character played (Compare in PoB)
+    startPobLogWatch();
     function processQueue() {
       if (processing) return;
       processing = true;
