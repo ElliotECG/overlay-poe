@@ -509,6 +509,36 @@ function buildInfo() {
   };
 }
 
+/** Class and level of the loaded build (shown on Discord), if one is loaded */
+export function pobCharacter(): { className?: string; level?: number } | null {
+  if (buildSummary?.ok) {
+    return {
+      className: typeof buildSummary.className === "string" ? buildSummary.className : undefined,
+      level: typeof buildSummary.level === "number" ? buildSummary.level : undefined,
+    };
+  }
+  // not loaded in Path of Building yet: the <Build ...> line of the file
+  try {
+    const file = settings.source === "pob" ? currentPobBuild()?.file : buildFile();
+    if (!file) return null;
+    const fd = fs.openSync(file, "r");
+    const head = Buffer.alloc(4096);
+    const size = fs.readSync(fd, head, 0, head.length, 0);
+    fs.closeSync(fd);
+    const tag = /<Build\s[^>]*>/.exec(head.subarray(0, size).toString("utf8"))?.[0];
+    if (!tag) return null;
+    const attr = (name: string) => new RegExp(`\\s${name}="([^"]*)"`).exec(tag)?.[1];
+    const className = attr("ascendClassName") || attr("className");
+    const level = Number(attr("level"));
+    return {
+      className: className && className !== "None" ? className : undefined,
+      level: Number.isFinite(level) && level > 0 ? level : undefined,
+    };
+  } catch {
+    return null;
+  }
+}
+
 function status() {
   const pobDir = findPobDir();
   return {

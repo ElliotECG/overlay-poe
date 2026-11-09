@@ -81,6 +81,29 @@
       </div>
     </div>
 
+    <!-- Show on Discord (main process route /atziri-discord) -->
+    <div v-if="discord" class="mb-4">
+      <ui-checkbox :model-value="discord.enabled" @update:model-value="setDiscord">
+        {{ tr("Afficher sur Discord que j'utilise My Ritualist Overlay", "Show on Discord that I use My Ritualist Overlay") }}
+      </ui-checkbox>
+      <div class="text-gray-500 text-sm mt-1">
+        {{
+          tr(
+            "Ton profil Discord affiche « Joue à My Ritualist Overlay », ton personnage et un lien vers l'overlay. Passe par l'application Discord de ce PC, aucun compte à connecter.",
+            "Your Discord profile shows \"Playing My Ritualist Overlay\", your character and a link to the overlay. Goes through the Discord app of this PC, no account to connect.",
+          )
+        }}
+        <template v-if="discord.enabled">
+          ·
+          {{
+            discord.connected
+              ? tr("Discord connecté.", "Discord connected.")
+              : tr("Discord pas encore détecté (il doit être ouvert).", "Discord not detected yet (it must be open).")
+          }}
+        </template>
+      </div>
+    </div>
+
     <!-- Fill stat values -->
     <div class="mb-2">
       <div class="flex-1 mb-1">{{ t("price_check.fill_rolls") }}</div>
@@ -671,6 +694,24 @@ async function loadAutostart(on?: boolean) {
 loadAutostart();
 function setAutostart(on: boolean) {
   loadAutostart(on);
+}
+
+// --- Show on Discord (main process route /atziri-discord) ---
+const discord = shallowRef<{ enabled: boolean; connected: boolean } | null>(null);
+async function loadDiscord(on?: boolean) {
+  try {
+    const res = await fetch(
+      on == null ? "/atziri-discord" : `/atziri-discord?on=${on ? 1 : 0}`,
+      { method: on == null ? "GET" : "POST" },
+    );
+    discord.value = await res.json();
+  } catch {
+    // dev mode: no main-process routes
+  }
+}
+loadDiscord();
+function setDiscord(on: boolean) {
+  loadDiscord(on);
 }
 
 async function applyNow() {

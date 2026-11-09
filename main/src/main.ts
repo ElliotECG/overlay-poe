@@ -21,7 +21,8 @@ import { setupAtziriData } from "./atziri-data";
 import { setupAtziriAutostart, isAutostartEnabled, launchedAtLogin } from "./atziri-autostart";
 import { DesktopWindow } from "./windowing/DesktopWindow";
 import { setupAtziriDeathRecap } from "./atziri-death-recap";
-import { setupAtziriPob } from "./atziri-pob";
+import { setupAtziriPob, pobCharacter } from "./atziri-pob";
+import { setupAtziriDiscord } from "./atziri-discord";
 import path from "node:path";
 
 // My Ritualist Overlay: the app was called "Atziri Exchange" before. Electron
@@ -189,6 +190,11 @@ app.on("browser-window-created", (_e, win) => {
         setupAtziriDeathRecap(server, logger);
         // My Ritualist Overlay: compare an item with the build in Path of Building
         setupAtziriPob(server, logger);
+        // My Ritualist Overlay: "Playing My Ritualist Overlay" on Discord
+        setupAtziriDiscord(server, logger, {
+          isGameOpen: () => poeWindow.isGameOpen,
+          character: pobCharacter,
+        });
         const port = await startServer(appUpdater, logger);
         // TODO: move up (currently crashes)
         logger.write(`info ${os.type()} ${os.release} / v${app.getVersion()}`);
