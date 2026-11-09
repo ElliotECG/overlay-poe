@@ -356,6 +356,28 @@ async function ensureBuild(logger: Logger, forceRefresh = false): Promise<Engine
   return answer;
 }
 
+/**
+ * The last comparisons (item text sent to Path of Building and its answer),
+ * kept in pob-compare/last-comparisons.json to understand surprising results
+ */
+const KEEP_COMPARISONS = 10;
+function rememberComparison(item: string, answer: EngineAnswer) {
+  const file = path.join(dataDir(), "last-comparisons.json");
+  let list: unknown[] = [];
+  try {
+    list = JSON.parse(fs.readFileSync(file, "utf8"));
+  } catch {
+    // first one
+  }
+  list.unshift({ at: new Date().toISOString(), character: settings.profileUrl, item, answer });
+  try {
+    fs.mkdirSync(dataDir(), { recursive: true });
+    fs.writeFileSync(file, JSON.stringify(list.slice(0, KEEP_COMPARISONS), null, 1));
+  } catch {
+    // not important
+  }
+}
+
 function status() {
   const pobDir = findPobDir();
   return {
@@ -480,6 +502,7 @@ async function handle(url: string, req: IncomingMessage, logger: Logger): Promis
       return loaded;
     }
     const answer = await ask(logger, { cmd: "compare", item }, COMPARE_TIMEOUT_MS);
+    rememberComparison(item, answer);
     // the card shows from now on
     openCard();
     return answer;

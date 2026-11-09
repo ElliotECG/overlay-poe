@@ -51,6 +51,8 @@ import {
   rememberTabUrl,
   localizeUrl,
 } from "./atziri-hub";
+import { comparePobText, pobResult } from "./atziri-pob";
+import { TRADE_PAGE_SCRIPT, readTradeMessage, tradeItemToPobText } from "./atziri-pob-trade";
 
 const props = defineProps({
   tab: { type: Object as PropType<WebTab>, required: true },
@@ -66,6 +68,7 @@ interface WebviewElement extends HTMLElement {
   goBack(): void;
   goForward(): void;
   reload(): void;
+  executeJavaScript(code: string): Promise<unknown>;
 }
 const webviewEl = shallowRef<WebviewElement | null>(null);
 let ready = false;
@@ -88,7 +91,33 @@ watch(webviewEl, (el) => {
   };
   el.addEventListener("did-navigate", onNav as EventListener);
   el.addEventListener("did-navigate-in-page", onNav as EventListener);
+
+  // My Ritualist Overlay: "PoB" buttons on the trade site's listings
+  el.addEventListener("dom-ready", () => {
+    if (isTradeSite(el.getURL())) {
+      el.executeJavaScript(TRADE_PAGE_SCRIPT).catch(() => {});
+    }
+  });
+  el.addEventListener("console-message", ((e: Event & { message?: string }) => {
+    const item = e.message ? readTradeMessage(e.message) : null;
+    if (!item) return;
+    if ("error" in item) {
+      pobResult.value = { ok: false, error: item.error };
+    } else {
+      comparePobText(tradeItemToPobText(item));
+    }
+  }) as EventListener);
 });
+
+/** pathofexile.com trade pages (any language), where listings get a PoB button */
+function isTradeSite(url: string) {
+  try {
+    const u = new URL(url);
+    return /(^|\.)pathofexile\.com$/.test(u.hostname) && u.pathname.startsWith("/trade2");
+  } catch {
+    return false;
+  }
+}
 
 function load(url: string) {
   addressInput.value = url;

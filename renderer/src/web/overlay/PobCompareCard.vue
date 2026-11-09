@@ -67,6 +67,10 @@
         <div v-if="pobResult.unknownMods" class="pob-note">
           {{ tr(`${pobResult.unknownMods} mod(s) non reconnu(s) : résultat approximatif`, `${pobResult.unknownMods} unknown mod(s): approximate result`) }}
         </div>
+        <div v-if="pobResult.unparsed?.length" class="pob-note">
+          {{ tr("Mods non pris en compte par Path of Building :", "Mods Path of Building ignores:") }}
+          <div v-for="l in pobResult.unparsed" :key="l" class="pob-unparsed">{{ l }}</div>
+        </div>
       </template>
     </div>
   </transition>
@@ -168,6 +172,18 @@ const GROUPS: Array<{ fr: string; en: string; rows: Row[] }> = [
       { key: "CritMultiplier", fr: "Dégâts critiques", en: "Crit damage", format: "mult" },
       { key: "HitChance", fr: "Chance de toucher", en: "Hit chance", format: "pct" },
       { key: "ManaCost", fr: "Coût en mana", en: "Mana cost", format: "int", lowerIsBetter: true },
+    ],
+  },
+  {
+    // where the damage comes from: explains why an item helps your build or not
+    fr: "Dégâts par coup, par type",
+    en: "Damage per hit, by type",
+    rows: [
+      { key: "PhysicalHitAverage", fr: "Physique", en: "Physical", format: "int" },
+      { key: "LightningHitAverage", fr: "Foudre", en: "Lightning", format: "int" },
+      { key: "ColdHitAverage", fr: "Froid", en: "Cold", format: "int" },
+      { key: "FireHitAverage", fr: "Feu", en: "Fire", format: "int" },
+      { key: "ChaosHitAverage", fr: "Chaos", en: "Chaos", format: "int" },
     ],
   },
   {
@@ -469,6 +485,11 @@ function errorText(error?: string) {
   margin-top: 10px;
   color: #e8a33a;
   font-size: 12.5px;
+}
+
+.pob-unparsed {
+  margin-left: 10px;
+  color: rgb(var(--c-gray-300));
 }
 
 .pob-card-enter-active,

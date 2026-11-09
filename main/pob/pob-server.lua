@@ -124,12 +124,20 @@ local STAT_KEYS = {
   "EvadeChance", "SpellBlockChance", "LifeRegenRecovery", "ManaRegenRecovery",
   -- attributes and their requirements
   "Str", "Dex", "Int", "ReqStr", "ReqDex", "ReqInt",
+  -- average hit per damage type, and the part enemy defences let through
+  "PhysicalHitAverage", "LightningHitAverage", "ColdHitAverage", "FireHitAverage",
+  "ChaosHitAverage", "PhysicalEffMult", "LightningEffMult", "ColdEffMult",
+  "FireEffMult", "ChaosEffMult",
 }
 
 local function pickStats(output)
   local out = {}
   for _, key in ipairs(STAT_KEYS) do
     local v = output[key]
+    -- attack details are stored per hand
+    if v == nil and type(output.MainHand) == "table" then
+      v = output.MainHand[key]
+    end
     if type(v) == "number" then
       out[key] = v
     end
@@ -193,6 +201,25 @@ function handlers.skill(req)
     return { ok = false, error = "bad-skill" }
   end
   build.mainSocketGroup = index
+  runCallback("OnFrame")
+  return summary()
+end
+
+-- Configuration options of the build (Path of Building's Configuration tab),
+-- e.g. { conditionEnemyArmourBroken = true }
+function handlers.config(req)
+  if not buildLoaded then
+    return { ok = false, error = "no-build" }
+  end
+  for key, value in pairs(req.values or {}) do
+    if value == json.null then
+      build.configTab.input[key] = nil
+    else
+      build.configTab.input[key] = value
+    end
+  end
+  build.configTab:BuildModList()
+  build.buildFlag = true
   runCallback("OnFrame")
   return summary()
 end
@@ -277,8 +304,18 @@ function handlers.compare(req)
       r.skills = perSlot[r.slot]
     end
   end
+  -- modifiers Path of Building did not understand (they count for nothing)
+  local unparsed = {}
+  for _, list in ipairs({ item.runeModLines, item.enchantModLines, item.implicitModLines, item.explicitModLines }) do
+    for _, modLine in ipairs(list or {}) do
+      if modLine.extra then
+        unparsed[#unparsed + 1] = modLine.line
+      end
+    end
+  end
   return {
     ok = true,
+    unparsed = unparsed,
     item = item.name,
     skill = (build.skillsTab.socketGroupList[build.mainSocketGroup] or {}).displayLabel,
     before = pickStats(before),

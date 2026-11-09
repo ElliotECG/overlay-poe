@@ -121,6 +121,8 @@ export interface PobCompareResult {
   results?: PobSlotResult[];
   /** modifiers the overlay could not read: the result may be incomplete */
   unknownMods?: number;
+  /** modifier lines Path of Building did not understand (ignored) */
+  unparsed?: string[];
 }
 
 /** Latest comparison, shown by the PoB card of the overlay */
@@ -128,7 +130,11 @@ export const pobResult = shallowRef<PobCompareResult | null>(null);
 export const pobBusy = shallowRef(false);
 
 export async function compareInPob(item: ParsedItem) {
-  const text = itemToPobText(item);
+  await comparePobText(itemToPobText(item), item.unknownModifiers.length);
+}
+
+/** Compares an item already written for Path of Building (English) */
+export async function comparePobText(text: string | null, unknownMods = 0) {
   if (!text) {
     pobResult.value = { ok: false, error: "unknown-base" };
     return;
@@ -138,7 +144,7 @@ export async function compareInPob(item: ParsedItem) {
     const res = (await (
       await fetch("/atziri-pob/compare", { method: "POST", body: text })
     ).json()) as PobCompareResult;
-    pobResult.value = { ...res, unknownMods: item.unknownModifiers.length };
+    pobResult.value = { ...res, unknownMods };
   } catch (e) {
     pobResult.value = { ok: false, error: (e as Error).message };
   } finally {
