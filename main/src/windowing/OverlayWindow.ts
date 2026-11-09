@@ -7,6 +7,7 @@ import {
 import type { ServerEvents } from "../server";
 import type { Logger } from "../RemoteLogger";
 import type { GameWindow } from "./GameWindow";
+import { isHiddenFromCapture } from "../atziri-capture";
 
 export class OverlayWindow {
   public isInteractable = false;
@@ -54,8 +55,9 @@ export class OverlayWindow {
     // Atziri Exchange: the overlay is left out of screen captures, so the
     // Death Recap videos (NVIDIA Instant Replay) show only the game. Side
     // effect: it is also hidden in OBS, Discord screen sharing and Windows
-    // screenshots.
-    this.window.setContentProtection(true);
+    // screenshots. My Ritualist Overlay: optional (atziri-capture.ts), so
+    // stream viewers can see it.
+    this.window.setContentProtection(isHiddenFromCapture());
 
     this.window.setMenu(
       Menu.buildFromTemplate([
@@ -67,6 +69,11 @@ export class OverlayWindow {
 
     this.window.webContents.on("before-input-event", this.handleExtraCommands);
     protectWebviews(this.window.webContents, this.handleExtraCommands);
+  }
+
+  /** My Ritualist Overlay: hides the overlay from screen captures (streams...) or not */
+  setHiddenFromCapture(hidden: boolean) {
+    this.window?.setContentProtection(hidden);
   }
 
   loadAppPage(port: number) {

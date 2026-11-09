@@ -104,6 +104,26 @@
       </div>
     </div>
 
+    <!-- Hide the overlay from captures (main process route /atziri-capture) -->
+    <div v-if="capture" class="mb-4">
+      <ui-checkbox :model-value="capture.hidden" @update:model-value="setCapture">
+        {{ tr("Masquer l'overlay des captures (stream, Death Recap)", "Hide the overlay from captures (stream, Death Recap)") }}
+      </ui-checkbox>
+      <div class="text-gray-500 text-sm mt-1">
+        {{
+          capture.hidden
+            ? tr(
+                "Activé : les vidéos Death Recap ne montrent que le jeu, mais l'overlay est aussi invisible en stream (OBS, partage d'écran Discord) et sur les captures d'écran. Décoche pour que tes viewers le voient.",
+                "On: Death Recap videos show only the game, but the overlay is also invisible in streams (OBS, Discord screen sharing) and screenshots. Uncheck it so your viewers see it.",
+              )
+            : tr(
+                "Désactivé : tes viewers voient l'overlay. Il apparaît aussi dans une vidéo Death Recap s'il est ouvert au moment de la mort. Dans OBS, utilise « Capture d'écran » (la « Capture de jeu » ne montre que le jeu).",
+                "Off: your viewers see the overlay. It also shows in a Death Recap video when it is open at the moment of death. In OBS, use \"Display Capture\" (\"Game Capture\" shows only the game).",
+              )
+        }}
+      </div>
+    </div>
+
     <!-- Fill stat values -->
     <div class="mb-2">
       <div class="flex-1 mb-1">{{ t("price_check.fill_rolls") }}</div>
@@ -712,6 +732,24 @@ async function loadDiscord(on?: boolean) {
 loadDiscord();
 function setDiscord(on: boolean) {
   loadDiscord(on);
+}
+
+// --- Hide the overlay from captures (main process route /atziri-capture) ---
+const capture = shallowRef<{ hidden: boolean } | null>(null);
+async function loadCapture(hidden?: boolean) {
+  try {
+    const res = await fetch(
+      hidden == null ? "/atziri-capture" : `/atziri-capture?hidden=${hidden ? 1 : 0}`,
+      { method: hidden == null ? "GET" : "POST" },
+    );
+    capture.value = await res.json();
+  } catch {
+    // dev mode: no main-process routes
+  }
+}
+loadCapture();
+function setCapture(hidden: boolean) {
+  loadCapture(hidden);
 }
 
 async function applyNow() {

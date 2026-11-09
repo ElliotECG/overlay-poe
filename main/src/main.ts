@@ -20,6 +20,7 @@ import { enableBrowserAdblock } from "./adblock";
 import { setupAtziriData } from "./atziri-data";
 import { setupAtziriAutostart, isAutostartEnabled, launchedAtLogin } from "./atziri-autostart";
 import { DesktopWindow } from "./windowing/DesktopWindow";
+import { setupAtziriCapture } from "./atziri-capture";
 import { setupAtziriDeathRecap } from "./atziri-death-recap";
 import { setupAtziriPob, pobCharacter } from "./atziri-pob";
 import { setupAtziriDiscord, overlayLeague } from "./atziri-discord";
@@ -148,6 +149,8 @@ app.on("browser-window-created", (_e, win) => {
     setTimeout(
       async () => {
         const overlay = new OverlayWindow(eventPipe, logger, poeWindow);
+        // My Ritualist Overlay: show the overlay in streams, or not
+        setupAtziriCapture(server, (hidden) => { overlay.setHiddenFromCapture(hidden); });
         // eslint-disable-next-line no-new
         new OverlayVisibility(eventPipe, overlay, gameConfig);
         const shortcuts = await Shortcuts.create(
