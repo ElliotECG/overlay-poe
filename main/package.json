@@ -1,6 +1,7 @@
 {
   "name": "atziri-exchange",
   "productName": "My Ritualist Overlay",
+  "description": "Overlay Path of Exile 2 : prix, comparaison Path of Building, Death Recap",
   "version": "0.16.3",
   "private": true,
   "scripts": {
@@ -13,11 +14,11 @@
     "format": "prettier . --write "
   },
   "author": {
-    "name": "Garrett Parker"
+    "name": "ElliotECG"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/Kvan7/exiled-exchange-2.git"
+    "url": "https://github.com/ElliotECG/overlay-poe.git"
   },
   "main": "dist/main.js",
   "dependencies": {
@@ -39,6 +40,7 @@
     "eslint-config-prettier": "^9.1.0",
     "ini": "^6.0.0",
     "prettier": "3.4.2",
+    "rcedit": "^5.0.2",
     "typescript": "5.9.x",
     "ws": "^8.16.0"
   },

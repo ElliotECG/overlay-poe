@@ -84,23 +84,6 @@
       </nav>
     </header>
 
-    <!-- New Atziri Exchange installer published on GitHub -->
-    <a
-      v-if="atziriUpdate"
-      class="ar-update"
-      :href="atziriUpdate.url"
-      target="_blank"
-      rel="noreferrer"
-    >
-      <i class="fas fa-download"></i>
-      {{
-        tr(
-          "Nouvelle version d'Atziri Exchange (le projet d'origine) disponible : clique pour la voir.",
-          "A new Atziri Exchange version (the original project) is available: click to see it.",
-        )
-      }}
-    </a>
-
     <!-- One web page per tab, kept alive (v-show) so each keeps its state -->
     <WebPane
       v-for="tab in WEB_TABS"
@@ -617,28 +600,6 @@ async function fetchLive(type: string, force = false, silent = false) {
   }
 }
 
-// --- New Atziri Exchange version (checked by the main process) ---
-const atziriUpdate = shallowRef<{ build: number; url: string } | null>(null);
-async function loadAtziriUpdate() {
-  try {
-    const s = await (await fetch("/atziri-data/status")).json();
-    const u = s?.atziriUpdate;
-    atziriUpdate.value =
-      u && typeof u.url === "string" && u.url.startsWith("https://github.com/")
-        ? u
-        : null;
-  } catch {
-    // dev mode: no main-process routes
-  }
-}
-watch(
-  () => props.visible,
-  (v) => {
-    if (v) loadAtziriUpdate();
-  },
-  { immediate: true },
-);
-
 let refreshTimer: ReturnType<typeof setInterval> | undefined;
 onMounted(() => {
   ninja.queuePricesFetch();
@@ -1132,24 +1093,6 @@ const rows = computed(() => {
   display: block;
   background: #0b0c16 url("/images/ritualist-avatar.png") no-repeat center;
   background-size: 108%;
-}
-
-/* new version notice */
-.ar-hub .ar-update {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin: 8px 0 0;
-  padding: 6px 12px;
-  border: 1px solid var(--accent);
-  border-radius: 6px;
-  background: var(--surface);
-  color: var(--fg);
-  text-decoration: none;
-}
-
-.ar-hub .ar-update:hover {
-  color: var(--accent);
 }
 
 /* Tabs: flat, icon + name, the open one underlined in the accent color */
