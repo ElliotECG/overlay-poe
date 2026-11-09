@@ -72,18 +72,26 @@
           <div v-for="l in pobResult.unparsed" :key="l" class="pob-unparsed">{{ l }}</div>
         </div>
       </template>
+
+      <!-- which build, and how old: a build older than the character gives old answers -->
+      <div v-if="!pobBusy && pobResult?.build?.at" class="pob-build" :class="{ 'is-old': buildOld }">
+        <i v-if="buildOld" class="fas fa-exclamation-triangle"></i>
+        {{ buildLine }}
+      </div>
     </div>
   </transition>
 </template>
 
 <script setup lang="ts">
-import { watch } from "vue";
-import { tr, dateLocale } from "@/web/atziri-lang";
+import { computed, watch } from "vue";
+import { tr, dateLocale, isFrench } from "@/web/atziri-lang";
 import { Host } from "@/web/background/IPC";
 import {
   pobBusy,
   pobResult,
   dpsOf,
+  buildAge,
+  OLD_BUILD_MS,
   type PobSkillDps,
   type PobSlotResult,
 } from "./atziri-pob";
@@ -307,8 +315,27 @@ function num(v: number) {
   return Math.round(v).toLocaleString(dateLocale());
 }
 
+const buildOld = computed(() => {
+  const b = pobResult.value?.build;
+  return b?.source === "ninja" && b.at != null && Date.now() - b.at > OLD_BUILD_MS;
+});
+
+const buildLine = computed(() => {
+  const b = pobResult.value?.build;
+  if (!b?.at) return "";
+  const age = buildAge(b.at, isFrench());
+  const name = b.name ? ` « ${b.name} »` : "";
+  return b.source === "pob"
+    ? tr(`Build${name} enregistré dans PoB ${age}`, `Build${name} saved in PoB ${age}`)
+    : tr(`Build${name} relevé sur poe.ninja ${age}`, `Build${name} read on poe.ninja ${age}`);
+});
+
 function errorText(error?: string) {
   switch (error) {
+    case "no-pob-build":
+      return tr("Aucun build enregistré dans Path of Building : importe ton personnage dans PoB 2, puis Ctrl + S.", "No build saved in Path of Building: import your character in PoB 2, then Ctrl + S.");
+    case "pob-build-missing":
+      return tr("Le build choisi n'existe plus dans Path of Building (Réglages Ritualiste).", "The chosen build no longer exists in Path of Building (Ritualist settings).");
     case "no-profile":
       return tr("Ajoute le lien poe.ninja de ton personnage dans Réglages Ritualiste.", "Add your character's poe.ninja link in Ritualist settings.");
     case "pob-not-found":
@@ -485,6 +512,16 @@ function errorText(error?: string) {
   margin-top: 10px;
   color: #e8a33a;
   font-size: 12.5px;
+}
+
+.pob-build {
+  margin-top: 10px;
+  font-size: 12px;
+  color: rgb(var(--c-gray-400));
+}
+
+.pob-build.is-old {
+  color: #e8a33a;
 }
 
 .pob-unparsed {

@@ -5,9 +5,12 @@
 // Path of Building build, and the overlay shows how DPS, life, defences and
 // resistances change.
 //
-// - The build comes from the character's poe.ninja page (its Path of Building
-//   export), refreshed when it is older than 30 minutes.
-// - Automatic mode follows the character being played: the one the game log
+// - The build comes from Path of Building itself (a build saved there after
+//   importing the character from the official site; reloaded each time it is
+//   saved), or from the character's poe.ninja page (its Path of Building
+//   export, which poe.ninja only updates every few hours), refreshed when it
+//   is older than 30 minutes.
+// - poe.ninja's automatic mode follows the character being played: the one the game log
 //   shows (level-ups of non-party players, quest rewards), else the account's
 //   current character (★) on poe.ninja.
 // - The calculations run in the user's installed Path of Building 2, started
@@ -41,6 +44,16 @@ function engineDir() {
 
 interface Settings {
   /**
+   * Where the build comes from: "pob", a build saved in Path of Building
+   * (imported there from the official site, always up to date), or "ninja",
+   * the character's poe.ninja page (only refreshed every few hours there)
+   */
+  source?: "pob" | "ninja";
+  /** "pob" source: the build file chosen, else the last one saved */
+  pobBuild?: string;
+  /** "pob" source: build file the chosen skill (skill) belongs to */
+  skillBuild?: string;
+  /**
    * "auto": the character currently played on the account (poe.ninja ★ and
    * the game log); "manual": always the character of profileUrl
    */
@@ -70,6 +83,8 @@ function loadSettings() {
     settings.account = parseAccount(settings.profileUrl) ?? undefined;
     settings.mode = settings.account ? "auto" : "manual";
   }
+  // settings from before the Path of Building source: poe.ninja was the only one
+  settings.source ??= settings.profileUrl ? "ninja" : "pob";
 }
 
 function saveSettings() {
@@ -89,6 +104,71 @@ function findPobDir(): string | null {
     if (dir && fs.existsSync(path.join(dir, "Launch.lua"))) return dir;
   }
   return null;
+}
+
+// ------------------------------------------- builds saved in Path of Building
+
+/**
+ * Folder where Path of Building 2 saves its builds:
+ * Documents\Path of Building (PoE2)\Builds, unless changed in its options
+ */
+export function pobBuildsDir(): string {
+  const userPath = path.join(app.getPath("documents"), "Path of Building (PoE2)");
+  try {
+    const xml = fs.readFileSync(path.join(userPath, "Settings.xml"), "utf8");
+    const custom = /\bbuildPath="([^"]+)"/.exec(xml)?.[1];
+    if (custom) return path.resolve(custom);
+  } catch {
+    // Path of Building never started: default folder
+  }
+  return path.join(userPath, "Builds");
+}
+
+interface SavedBuild {
+  file: string;
+  /** name shown in Path of Building (folder/name, without .xml) */
+  name: string;
+  savedAt: number;
+}
+
+/** Builds saved in Path of Building, the last saved first */
+function listPobBuilds(): SavedBuild[] {
+  const root = pobBuildsDir();
+  const found: SavedBuild[] = [];
+  const walk = (dir: string, depth: number) => {
+    let entries: fs.Dirent[];
+    try {
+      entries = fs.readdirSync(dir, { withFileTypes: true });
+    } catch {
+      return;
+    }
+    for (const e of entries) {
+      const full = path.join(dir, e.name);
+      if (e.isDirectory() && depth < 3) walk(full, depth + 1);
+      else if (e.isFile() && e.name.toLowerCase().endsWith(".xml")) {
+        try {
+          found.push({
+            file: full,
+            name: path.relative(root, full).replace(/\.xml$/i, "").replace(/\\/g, "/"),
+            savedAt: Math.round(fs.statSync(full).mtimeMs),
+          });
+        } catch {
+          // removed meanwhile
+        }
+      }
+    }
+  };
+  walk(root, 0);
+  return found.sort((a, b) => b.savedAt - a.savedAt);
+}
+
+/** Build file used with the "pob" source: the chosen one, else the last saved */
+function currentPobBuild(): SavedBuild | null {
+  const list = listPobBuilds();
+  if (settings.pobBuild) {
+    return list.find((b) => b.file === settings.pobBuild) ?? null;
+  }
+  return list[0] ?? null;
 }
 
 // ------------------------------------------------------------ poe.ninja
@@ -319,8 +399,45 @@ async function followCurrentCharacter(logger: Logger) {
   }
 }
 
-/** Loads the saved build in the engine, refreshing it from poe.ninja if old */
+/**
+ * What the engine has loaded: "ninja", or "pob|<file>|<save time>" (a new
+ * save of the file in Path of Building is a new build)
+ */
+let loadedKey: string | null = null;
+
+
+/** "pob" source: loads the build file, again each time it is saved */
+async function ensurePobBuild(logger: Logger): Promise<EngineAnswer> {
+  const saved = currentPobBuild();
+  if (!saved) {
+    lastError = settings.pobBuild ? "pob-build-missing" : "no-pob-build";
+    return { ok: false, error: lastError };
+  }
+  const key = `pob|${saved.file}|${saved.savedAt}`;
+  if (buildSummary?.ok && engine && loadedKey === key) return buildSummary;
+
+  // another build: its own main skill (the one chosen in Path of Building)
+  if (settings.skillBuild !== saved.file) {
+    settings.skill = undefined;
+    settings.skillBuild = saved.file;
+    saveSettings();
+  }
+  const xml = fs.readFileSync(saved.file, "utf8");
+  const answer = await ask(logger, { cmd: "load", xml, skill: settings.skill }, LOAD_TIMEOUT_MS);
+  if (answer.ok) {
+    buildSummary = answer;
+    loadedKey = key;
+    lastError = null;
+    logger.write(`info [PoB] build "${saved.name}" loaded (saved ${new Date(saved.savedAt).toLocaleString()}).`);
+  } else {
+    lastError = answer.error ?? "load-failed";
+  }
+  return answer;
+}
+
+/** Loads the build in the engine: from Path of Building, or from poe.ninja */
 async function ensureBuild(logger: Logger, forceRefresh = false): Promise<EngineAnswer> {
+  if (settings.source === "pob") return await ensurePobBuild(logger);
   await followCurrentCharacter(logger);
   if (!settings.profileUrl) return { ok: false, error: "no-profile" };
   const profile = parseProfileUrl(settings.profileUrl);
@@ -343,12 +460,13 @@ async function ensureBuild(logger: Logger, forceRefresh = false): Promise<Engine
       if (!fs.existsSync(buildFile())) return { ok: false, error: lastError };
     }
   }
-  if (buildSummary?.ok && engine) return buildSummary;
+  if (buildSummary?.ok && engine && loadedKey === "ninja") return buildSummary;
 
   xml ??= fs.readFileSync(buildFile(), "utf8");
   const answer = await ask(logger, { cmd: "load", xml, skill: settings.skill }, LOAD_TIMEOUT_MS);
   if (answer.ok) {
     buildSummary = answer;
+    loadedKey = "ninja";
     lastError = null;
   } else {
     lastError = answer.error ?? "load-failed";
@@ -378,11 +496,29 @@ function rememberComparison(item: string, answer: EngineAnswer) {
   }
 }
 
+/** When the build in use was taken: saved in Path of Building, or read on poe.ninja */
+function buildInfo() {
+  if (settings.source === "pob") {
+    const saved = currentPobBuild();
+    return { source: "pob" as const, name: saved?.name ?? null, at: saved?.savedAt ?? null };
+  }
+  return {
+    source: "ninja" as const,
+    name: currentCharacter?.name ?? parseProfileUrl(settings.profileUrl ?? "")?.name ?? null,
+    at: settings.fetchedAt ?? null,
+  };
+}
+
 function status() {
   const pobDir = findPobDir();
   return {
     pobFound: pobDir != null,
     pobDir,
+    source: settings.source ?? "pob",
+    buildsDir: pobBuildsDir(),
+    builds: listPobBuilds().slice(0, 50).map((b) => ({ file: b.file, name: b.name, savedAt: b.savedAt })),
+    pobBuild: settings.pobBuild ?? null,
+    buildInfo: buildInfo(),
     mode: settings.mode ?? "auto",
     account: settings.account ?? null,
     character: currentCharacter
@@ -464,13 +600,27 @@ async function handle(url: string, req: IncomingMessage, logger: Logger): Promis
     await ensureBuild(logger, true);
     return status();
   }
+  if (url.startsWith("/atziri-pob/source") && req.method === "POST") {
+    const body = JSON.parse(await readBody(req)) as { source?: string; build?: string | null };
+    if (body.source === "pob" || body.source === "ninja") settings.source = body.source;
+    if (body.build !== undefined) {
+      // only a build of the Path of Building folder (null: the last saved one)
+      const known = listPobBuilds().some((b) => b.file === body.build);
+      settings.pobBuild = body.build && known ? body.build : undefined;
+    }
+    saveSettings();
+    buildSummary = null;
+    loadedKey = null;
+    await ensureBuild(logger);
+    return status();
+  }
   if (url.startsWith("/atziri-pob/hint") && req.method === "POST") {
     // the game log shows which character is being played
     const { name } = JSON.parse(await readBody(req)) as { name?: string };
     if (name && name !== settings.logCharacter) {
       settings.logCharacter = name;
       saveSettings();
-      if (settings.mode === "auto" && name !== currentCharacter?.name) {
+      if (settings.source === "ninja" && settings.mode === "auto" && name !== currentCharacter?.name) {
         characters = null; // the new character may be missing from the cached list
         // load the new build now, so the next comparison is quick
         ensureBuild(logger).catch(() => {});
@@ -499,13 +649,13 @@ async function handle(url: string, req: IncomingMessage, logger: Logger): Promis
     const loaded = await ensureBuild(logger);
     if (!loaded.ok) {
       openCard();
-      return loaded;
+      return { ...loaded, build: buildInfo() };
     }
     const answer = await ask(logger, { cmd: "compare", item }, COMPARE_TIMEOUT_MS);
     rememberComparison(item, answer);
     // the card shows from now on
     openCard();
-    return answer;
+    return { ...answer, build: buildInfo() };
   }
   return undefined;
 }
@@ -548,11 +698,37 @@ function closeCardOnInput() {
   });
 }
 
+/**
+ * A build saved in Path of Building (after "Import" from the official site)
+ * is loaded right away, so the next comparison is quick and up to date
+ */
+function watchPobBuilds(logger: Logger) {
+  const dir = pobBuildsDir();
+  let timer: NodeJS.Timeout | null = null;
+  try {
+    fs.mkdirSync(dir, { recursive: true });
+    const watcher = fs.watch(dir, { recursive: true }, (_event, name) => {
+      if (!name?.toLowerCase().endsWith(".xml")) return;
+      if (timer) clearTimeout(timer);
+      // Path of Building writes the file in several steps
+      timer = setTimeout(() => {
+        if (settings.source !== "pob" || !engine) return;
+        ensureBuild(logger).catch(() => {});
+      }, 1500);
+    });
+    watcher.on("error", () => {});
+    app.on("will-quit", () => { watcher.close(); });
+  } catch (e) {
+    logger.write(`warn [PoB] cannot watch ${dir}: ${(e as Error).message}`);
+  }
+}
+
 /** Routes /atziri-pob/* used by the overlay page */
 export function setupAtziriPob(server: Server, logger: Logger) {
   loadSettings();
   app.on("will-quit", stopEngine);
   closeCardOnInput();
+  watchPobBuilds(logger);
 
   server.prependListener("request", (req: IncomingMessage, res: ServerResponse) => {
     const url = req.url ?? "";

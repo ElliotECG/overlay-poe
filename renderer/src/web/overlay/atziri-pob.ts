@@ -123,6 +123,8 @@ export interface PobCompareResult {
   unknownMods?: number;
   /** modifier lines Path of Building did not understand (ignored) */
   unparsed?: string[];
+  /** the build compared with */
+  build?: PobBuildInfo;
 }
 
 /** Latest comparison, shown by the PoB card of the overlay */
@@ -194,6 +196,26 @@ export function startPobLogWatch() {
   Host.onEvent("MAIN->CLIENT::game-log", (e) => {
     for (const line of e.lines) handleLogLine(line);
   });
+}
+
+/** Where the build of a comparison comes from (see buildInfo in main/src/atziri-pob.ts) */
+export interface PobBuildInfo {
+  source: "pob" | "ninja";
+  name: string | null;
+  /** saved in Path of Building, or read on poe.ninja (ms) */
+  at: number | null;
+}
+
+/** poe.ninja only updates characters every few hours: warn past this age */
+export const OLD_BUILD_MS = 2 * 60 * 60 * 1000;
+
+/** "à l'instant", "il y a 5 min", "il y a 3 h", "il y a 2 j" */
+export function buildAge(at: number, fr: boolean, now = Date.now()) {
+  const min = Math.max(0, Math.round((now - at) / 60_000));
+  if (min < 1) return fr ? "à l'instant" : "just now";
+  const [n, unit] =
+    min < 60 ? [min, "min"] : min < 48 * 60 ? [Math.round(min / 60), "h"] : [Math.round(min / 1440), fr ? "j" : "d"];
+  return fr ? `il y a ${n} ${unit}` : `${n} ${unit} ago`;
 }
 
 /** Main DPS figure: DPS of the main skill, with damage over time */

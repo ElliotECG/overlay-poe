@@ -150,7 +150,47 @@
         <label class="flex-1">{{ tr("Raccourci", "Shortcut") }}</label>
         <hotkey-input v-model="pobCompareKey" class="w-48" />
       </div>
-      <div class="flex flex-col gap-1 mb-2">
+      <div class="mb-1">{{ tr("Build utilisé", "Build used") }}</div>
+      <div class="flex flex-col gap-1 mb-3">
+        <ui-radio :model-value="pobStatus?.source" value="pob" @update:model-value="pobSetSource('pob')">
+          {{ tr("Mon build Path of Building (toujours à jour, recommandé)", "My Path of Building build (always up to date, recommended)") }}
+        </ui-radio>
+        <ui-radio :model-value="pobStatus?.source" value="ninja" @update:model-value="pobSetSource('ninja')">
+          {{ tr("Mon personnage sur poe.ninja (mis à jour toutes les quelques heures)", "My character on poe.ninja (updated every few hours)") }}
+        </ui-radio>
+      </div>
+
+      <template v-if="pobStatus?.source === 'pob'">
+        <div class="text-gray-400 mb-2">
+          {{
+            tr(
+              "Dans Path of Building 2 : onglet « Import/Export Build », importe ton personnage, puis enregistre le build (Ctrl + S). À chaque enregistrement, l'overlay recharge le build tout seul : après un changement de gemme ou d'équipement, refais juste Import puis Ctrl + S.",
+              "In Path of Building 2: \"Import/Export Build\" tab, import your character, then save the build (Ctrl + S). Each time you save, the overlay reloads the build: after changing a gem or an item, just Import and Ctrl + S again.",
+            )
+          }}
+        </div>
+        <div class="flex items-center gap-2 mb-2">
+          <span>{{ tr("Build :", "Build:") }}</span>
+          <select
+            class="p-1 rounded bg-gray-700 flex-1 min-w-0"
+            :value="pobStatus.pobBuild ?? ''"
+            :disabled="pobBusy"
+            @change="pobSetBuild(($event.target as HTMLSelectElement).value)"
+          >
+            <option value="">
+              {{ tr("Le dernier enregistré", "The last saved one") }}{{ pobStatus.builds[0] ? ` (${pobStatus.builds[0].name})` : "" }}
+            </option>
+            <option v-for="b in pobStatus.builds" :key="b.file" :value="b.file">
+              {{ b.name }} · {{ pobAge(b.savedAt) }}
+            </option>
+          </select>
+        </div>
+        <div v-if="!pobStatus.builds.length" class="text-yellow-400 mb-2">
+          {{ tr("Aucun build enregistré dans", "No build saved in") }} {{ pobStatus.buildsDir }}
+        </div>
+      </template>
+
+      <div v-if="pobStatus?.source === 'ninja'" class="flex flex-col gap-1 mb-2">
         <ui-radio :model-value="pobMode" value="auto" @update:model-value="pobMode = 'auto'">
           {{ tr("Personnage joué, automatiquement", "Character being played, automatically") }}
         </ui-radio>
@@ -158,6 +198,7 @@
           {{ tr("Toujours le même personnage", "Always the same character") }}
         </ui-radio>
       </div>
+      <template v-if="pobStatus?.source === 'ninja'">
       <div class="mb-1">
         {{
           pobMode === "auto"
@@ -176,11 +217,12 @@
           {{ tr("Importer", "Import") }}
         </button>
       </div>
+      </template>
       <div class="text-gray-400">
         <div v-if="pobStatus && !pobStatus.pobFound" class="text-red-400">
           {{ tr("Path of Building 2 n'est pas installé sur ce PC (il est nécessaire pour les calculs).", "Path of Building 2 is not installed on this PC (it does the calculations).") }}
         </div>
-        <div v-if="pobMode === 'auto' && pobStatus?.character" class="mb-1">
+        <div v-if="pobStatus?.source === 'ninja' && pobMode === 'auto' && pobStatus?.character" class="mb-1">
           {{ tr("Personnage suivi :", "Followed character:") }}
           <b class="text-gray-200">{{ pobStatus.character.name }}</b>
           ({{ pobStatus.character.league }})
@@ -209,20 +251,27 @@
                 {{ s.label }}
               </option>
             </select>
-            <button class="btn" :disabled="pobBusy" @click="pobRefresh">
+            <button v-if="pobStatus.source === 'ninja'" class="btn" :disabled="pobBusy" @click="pobRefresh">
               {{ tr("Actualiser depuis poe.ninja", "Refresh from poe.ninja") }}
             </button>
           </div>
-          <div v-if="pobStatus.fetchedAt" class="mt-1">
-            {{ tr("Build récupéré le", "Build fetched on") }} {{ dayTime(pobStatus.fetchedAt) }}
-            {{ tr("(actualisé tout seul toutes les 30 min)", "(refreshed every 30 min)") }}
+          <div v-if="pobStatus.buildInfo.at" class="mt-1" :class="pobBuildOld ? 'text-yellow-400' : ''">
+            <template v-if="pobStatus.source === 'pob'">
+              {{ tr("Build enregistré dans Path of Building", "Build saved in Path of Building") }}
+              {{ pobAge(pobStatus.buildInfo.at) }} ({{ dayTime(pobStatus.buildInfo.at) }})
+            </template>
+            <template v-else>
+              {{ tr("Build relevé sur poe.ninja", "Build read on poe.ninja") }}
+              {{ pobAge(pobStatus.buildInfo.at) }} ({{ dayTime(pobStatus.buildInfo.at) }}) ·
+              {{ tr("poe.ninja ne met tes personnages à jour que toutes les quelques heures", "poe.ninja only updates your characters every few hours") }}
+            </template>
           </div>
         </template>
-        <template v-else-if="pobStatus?.profileUrl">
+        <template v-else-if="pobStatus?.source === 'ninja' && pobStatus?.profileUrl">
           {{ tr("Le build sera chargé à la première comparaison.", "The build is loaded at the first comparison.") }}
         </template>
         <div v-if="pobStatus?.error" class="text-red-400 mt-1">
-          {{ tr("Échec :", "Failed:") }} {{ pobStatus.error }}
+          {{ tr("Échec :", "Failed:") }} {{ pobErrorText }}
         </div>
       </div>
     </div>
@@ -466,6 +515,7 @@ import {
 } from "../atziri-backgrounds";
 import { Host } from "@/web/background/IPC";
 import { tr, isFrench, dateLocale } from "@/web/atziri-lang";
+import { buildAge, OLD_BUILD_MS, type PobBuildInfo } from "@/web/overlay/atziri-pob";
 
 const props = defineProps(configProp());
 
@@ -531,6 +581,11 @@ async function dataAction(action: "check" | "reset") {
 // --- Compare in Path of Building (main process routes /atziri-pob/*) ---
 interface PobStatus {
   pobFound: boolean;
+  source: "pob" | "ninja";
+  buildsDir: string;
+  builds: Array<{ file: string; name: string; savedAt: number }>;
+  pobBuild: string | null;
+  buildInfo: PobBuildInfo;
   mode: "auto" | "manual";
   account: string | null;
   character: {
@@ -589,6 +644,29 @@ function pobRefresh() {
 function pobSetSkill(index: number) {
   pobCall("skill", { index });
 }
+function pobSetSource(source: "pob" | "ninja") {
+  pobCall("source", { source });
+}
+function pobSetBuild(file: string) {
+  pobCall("source", { source: "pob", build: file || null });
+}
+function pobAge(at: number) {
+  return buildAge(at, isFrench());
+}
+const pobBuildOld = computed(() => {
+  const info = pobStatus.value?.buildInfo;
+  return info?.source === "ninja" && info.at != null && Date.now() - info.at > OLD_BUILD_MS;
+});
+const pobErrorText = computed(() => {
+  const error = pobStatus.value?.error;
+  if (error === "no-pob-build") {
+    return tr("aucun build enregistré dans Path of Building (importe ton personnage puis Ctrl + S).", "no build saved in Path of Building (import your character, then Ctrl + S).");
+  }
+  if (error === "pob-build-missing") {
+    return tr("le build choisi n'existe plus dans Path of Building.", "the chosen build no longer exists in Path of Building.");
+  }
+  return error;
+});
 
 // --- Start with the game (main process route /atziri-autostart) ---
 const autostart = shallowRef<{ supported: boolean; enabled: boolean } | null>(
