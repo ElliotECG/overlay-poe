@@ -18,7 +18,8 @@ import { installExtension, VUEJS_DEVTOOLS } from "electron-devtools-installer";
 import { FileWriter } from "./host-files/FileWriter";
 import { enableBrowserAdblock } from "./adblock";
 import { setupAtziriData } from "./atziri-data";
-import { setupAtziriAutostart, isAutostartEnabled } from "./atziri-autostart";
+import { setupAtziriAutostart, isAutostartEnabled, launchedAtLogin } from "./atziri-autostart";
+import { DesktopWindow } from "./windowing/DesktopWindow";
 import { setupAtziriDeathRecap } from "./atziri-death-recap";
 import { setupAtziriPob } from "./atziri-pob";
 import path from "node:path";
@@ -99,11 +100,24 @@ app.on("browser-window-created", (_e, win) => {
     const logger = new Logger(eventPipe);
     const gameConfig = new GameConfig(eventPipe, logger);
     const poeWindow = new GameWindow();
+    poeWindow.trackGameOpen();
+    // My Ritualist Overlay: the hub in a normal window, without the game
+    const desktop = new DesktopWindow();
+    tray.onOpen = () => { desktop.open(); };
+    // launched again (desktop shortcut) while already running: show the window
+    app.on("second-instance", () => { desktop.open(); });
     // Atziri Exchange: the overlay closes itself when the game is closed
-    // (unless "start with the game" is on: it then waits for the next game)
+    // (unless "start with the game" is on: it then waits for the next game,
+    // or the desktop window is open)
     poeWindow.onGameClosed(() => {
-      if (isAutostartEnabled()) return;
+      if (isAutostartEnabled() || desktop.isOpen) return;
       logger.write("info [Atziri] game closed, quitting the overlay.");
+      app.quit();
+    });
+    // closing the desktop window without the game quits the app too
+    desktop.onClosed(() => {
+      if (poeWindow.isGameOpen || isAutostartEnabled()) return;
+      logger.write("info [Ritualist] desktop window closed without the game, quitting.");
       app.quit();
     });
     const appUpdater = new AppUpdater(eventPipe);
@@ -180,6 +194,14 @@ app.on("browser-window-created", (_e, win) => {
         logger.write(`info ${os.type()} ${os.release} / v${app.getVersion()}`);
         overlay.loadAppPage(port);
         tray.serverPort = port;
+        desktop.setPort(port);
+        // started by the user while the game is not running: open the
+        // desktop window (the overlay needs a few seconds to find the game)
+        if (!launchedAtLogin()) {
+          setTimeout(() => {
+            if (!poeWindow.isGameOpen) desktop.open();
+          }, 4000);
+        }
       },
       // fixes(linux): window is black instead of transparent
       process.platform === "linux" ? 1000 : 0,

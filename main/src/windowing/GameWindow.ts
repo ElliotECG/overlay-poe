@@ -51,6 +51,15 @@ export class GameWindow extends EventEmitter {
     });
   }
 
+  /** My Ritualist Overlay: the game window is open (the overlay is attached to it) */
+  isGameOpen = false;
+
+  /** Starts tracking isGameOpen */
+  trackGameOpen() {
+    OverlayController.events.on("attach", () => { this.isGameOpen = true; });
+    OverlayController.events.on("detach", () => { this.isGameOpen = false; });
+  }
+
   /**
    * Atziri Exchange: called when the game window has closed and did not come
    * back within a few seconds (the game was quit, not just restarting).

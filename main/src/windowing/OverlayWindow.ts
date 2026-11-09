@@ -66,38 +66,7 @@ export class OverlayWindow {
     );
 
     this.window.webContents.on("before-input-event", this.handleExtraCommands);
-    // Atziri Exchange: web tabs are plain web pages, never given app powers
-    this.window.webContents.on(
-      "will-attach-webview",
-      (event, webPreferences, params) => {
-        delete webPreferences.preload;
-        webPreferences.nodeIntegration = false;
-        webPreferences.nodeIntegrationInSubFrames = false;
-        webPreferences.contextIsolation = true;
-        webPreferences.sandbox = true;
-        if (params.src && !isWebUrl(params.src)) event.preventDefault();
-      },
-    );
-    this.window.webContents.on(
-      "did-attach-webview",
-      (_, webviewWebContents) => {
-        webviewWebContents.on("before-input-event", this.handleExtraCommands);
-        // links opening a new window stay in the same tab
-        webviewWebContents.setWindowOpenHandler((details) => {
-          if (isWebUrl(details.url)) webviewWebContents.loadURL(details.url);
-          return { action: "deny" };
-        });
-        // only http(s) pages, no file:// or custom protocols
-        webviewWebContents.on("will-navigate", (e, url) => {
-          if (!isWebUrl(url)) e.preventDefault();
-        });
-      },
-    );
-
-    this.window.webContents.setWindowOpenHandler((details) => {
-      if (isWebUrl(details.url)) shell.openExternal(details.url);
-      return { action: "deny" };
-    });
+    protectWebviews(this.window.webContents, this.handleExtraCommands);
   }
 
   loadAppPage(port: number) {
@@ -264,4 +233,39 @@ export class OverlayWindow {
 /** Atziri Exchange: http(s) pages only */
 function isWebUrl(url: string) {
   return /^https?:\/\//i.test(url);
+}
+
+/**
+ * Atziri Exchange: web tabs (<webview>) of a page of the app are plain web
+ * pages, never given app powers; links of the app page open in the browser.
+ * Used by the overlay and by the desktop window.
+ */
+export function protectWebviews(
+  contents: Electron.WebContents,
+  onWebviewInput?: (event: Electron.Event, input: Electron.Input) => void,
+) {
+  contents.on("will-attach-webview", (event, webPreferences, params) => {
+    delete webPreferences.preload;
+    webPreferences.nodeIntegration = false;
+    webPreferences.nodeIntegrationInSubFrames = false;
+    webPreferences.contextIsolation = true;
+    webPreferences.sandbox = true;
+    if (params.src && !isWebUrl(params.src)) event.preventDefault();
+  });
+  contents.on("did-attach-webview", (_, webviewWebContents) => {
+    if (onWebviewInput) webviewWebContents.on("before-input-event", onWebviewInput);
+    // links opening a new window stay in the same tab
+    webviewWebContents.setWindowOpenHandler((details) => {
+      if (isWebUrl(details.url)) webviewWebContents.loadURL(details.url);
+      return { action: "deny" };
+    });
+    // only http(s) pages, no file:// or custom protocols
+    webviewWebContents.on("will-navigate", (e, url) => {
+      if (!isWebUrl(url)) e.preventDefault();
+    });
+  });
+  contents.setWindowOpenHandler((details) => {
+    if (isWebUrl(details.url)) shell.openExternal(details.url);
+    return { action: "deny" };
+  });
 }

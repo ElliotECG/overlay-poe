@@ -1,11 +1,15 @@
 <template>
   <div id="app" class="text-sm font-poe-sc">
-    <OverlayWindow />
+    <!-- My Ritualist Overlay: the hub in a normal window, or the overlay -->
+    <DesktopWindow v-if="isDesktopWindow" />
+    <OverlayWindow v-else />
   </div>
 </template>
 
 <script setup lang="ts">
 import OverlayWindow from "./overlay/OverlayWindow.vue";
+import DesktopWindow from "./DesktopWindow.vue";
+import { isDesktopWindow } from "./atziri-desktop";
 </script>
 
 <style lang="postcss">

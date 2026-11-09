@@ -90,7 +90,9 @@ if (!process.env.VITE_DEV_SERVER_URL) {
     )
       return;
 
-    const filePath = req.url === "/" ? "/index.html" : req.url!;
+    // without the query ("/index.html?desktop=1": the desktop window)
+    const urlPath = req.url!.split("?")[0];
+    const filePath = urlPath === "/" ? "/index.html" : urlPath;
     switch (path.extname(filePath)) {
       case ".html":
         res.setHeader("content-type", "text/html");
@@ -129,9 +131,14 @@ export function sendEventTo(
       client.send(msg);
     }
   } else {
-    lastActiveClient.send(msg);
+    lastActiveClient?.send(msg);
   }
 }
+
+// My Ritualist Overlay: pages of the desktop window ("/events?desktop=1").
+// They get broadcasts (settings, Death Recap...) but never become the
+// "last active" page: the items copied in game always go to the overlay.
+const desktopClients = new WeakSet<WebSocket>();
 
 export interface ServerEvents {
   onEventAnyClient: typeof onEventAnyClient;
@@ -143,7 +150,7 @@ export const eventPipe = {
 };
 
 server.on("upgrade", (req, socket, head) => {
-  if (req.url !== "/events") {
+  if (req.url !== "/events" && req.url !== "/events?desktop=1") {
     return req.destroy();
   }
   websocketServer.handleUpgrade(req, socket, head, (ws) => {
@@ -157,27 +164,35 @@ export async function startServer(
 ): Promise<number> {
   const configStore = new ConfigStore(eventPipe);
 
-  websocketServer.on("connection", (socket) => {
-    lastActiveClient = socket;
+  websocketServer.on("connection", (socket, req: IncomingMessage) => {
+    const isDesktop = req.url === "/events?desktop=1";
+    if (isDesktop) desktopClients.add(socket);
+    else lastActiveClient = socket;
     socket.on("message", (bytes) => {
       // eslint-disable-next-line @typescript-eslint/no-base-to-string
       const event = JSON.parse(bytes.toString("utf-8")) as IpcEvent;
       if (event.name === "CLIENT->MAIN::used-recently") {
+        if (isDesktop) return;
         lastActiveClient = socket;
       }
       evBus.emit(event.name, event.payload);
     });
     socket.on("close", () => {
-      const clients = websocketServer.clients;
-      if (clients.size === 1) {
-        lastActiveClient = clients.values().next().value!;
+      if (isDesktop) return;
+      const others = [...websocketServer.clients].filter(
+        (c) => c !== socket && !desktopClients.has(c),
+      );
+      if (others.length === 1) {
+        lastActiveClient = others[0];
         evBus.emit("CLIENT->MAIN::used-recently", { isOverlay: true });
       }
     });
-    sendEventTo("last-active", {
-      name: "MAIN->CLIENT::log-entry",
-      payload: { message: logger.history },
-    });
+    socket.send(
+      JSON.stringify({
+        name: "MAIN->CLIENT::log-entry",
+        payload: { message: logger.history },
+      } satisfies IpcEvent),
+    );
   });
 
   server.addListener("request", async (req, res) => {

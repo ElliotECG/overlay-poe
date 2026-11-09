@@ -8,6 +8,11 @@ import type { Server, IncomingMessage, ServerResponse } from "http";
 
 const AUTOSTART_ARG = "--atziri-autostart";
 
+/** This launch was started by Windows at login (not by the user) */
+export function launchedAtLogin(): boolean {
+  return process.argv.includes(AUTOSTART_ARG);
+}
+
 export function isAutostartEnabled(): boolean {
   if (process.platform !== "win32") return false;
   try {

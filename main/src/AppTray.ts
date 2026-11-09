@@ -6,6 +6,8 @@ export class AppTray {
   public overlayKey = "Shift + Space";
   private tray: Tray;
   serverPort = 0;
+  /** My Ritualist Overlay: opens the desktop window (set in main.ts) */
+  onOpen?: () => void;
 
   constructor(server: ServerEvents) {
     let trayImage = nativeImage.createFromPath(
@@ -25,6 +27,8 @@ export class AppTray {
     this.tray = new Tray(trayImage);
     this.tray.setToolTip(`My Ritualist Overlay v${app.getVersion()}`);
     this.rebuildMenu();
+    // My Ritualist Overlay: a click on the icon opens the desktop window
+    this.tray.on("click", () => this.onOpen?.());
 
     server.onEventAnyClient("CLIENT->MAIN::user-action", ({ action }) => {
       if (action === "quit") {
@@ -35,6 +39,11 @@ export class AppTray {
 
   rebuildMenu() {
     const contextMenu = Menu.buildFromTemplate([
+      {
+        label: "Ouvrir la fenêtre",
+        click: () => this.onOpen?.(),
+      },
+      { type: "separator" },
       {
         label: "Settings/League",
         click: () => {
