@@ -22,7 +22,7 @@ import { setupAtziriAutostart, isAutostartEnabled, launchedAtLogin } from "./atz
 import { DesktopWindow } from "./windowing/DesktopWindow";
 import { setupAtziriDeathRecap } from "./atziri-death-recap";
 import { setupAtziriPob, pobCharacter } from "./atziri-pob";
-import { setupAtziriDiscord } from "./atziri-discord";
+import { setupAtziriDiscord, overlayLeague } from "./atziri-discord";
 import path from "node:path";
 
 // My Ritualist Overlay: the app was called "Atziri Exchange" before. Electron
@@ -194,6 +194,7 @@ app.on("browser-window-created", (_e, win) => {
         setupAtziriDiscord(server, logger, {
           isGameOpen: () => poeWindow.isGameOpen,
           character: pobCharacter,
+          league: overlayLeague,
         });
         const port = await startServer(appUpdater, logger);
         // TODO: move up (currently crashes)

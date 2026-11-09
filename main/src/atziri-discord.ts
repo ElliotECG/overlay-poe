@@ -24,46 +24,106 @@ const OP_CLOSE = 2;
 const OP_PING = 3;
 const OP_PONG = 4;
 
+export interface DiscordCharacter {
+  /** shown class name */
+  className?: string;
+  /** English ascendancy (or class), for its picture, e.g. "Ritualist" */
+  ascendancy?: string;
+  level?: number;
+}
+
 export interface DiscordContext {
   isGameOpen: () => boolean;
-  /** character of the build used to compare items, if any */
-  character: () => { className?: string; level?: number } | null;
+  /** the character being played, if known */
+  character: () => DiscordCharacter | null;
+  /** league chosen in the overlay, e.g. "Forbidden Rites" */
+  league: () => string | null;
 }
 
 interface Activity {
   details: string;
   state: string;
   timestamps: { start: number };
-  assets: { large_image: string; large_text: string };
+  assets: {
+    large_image: string;
+    large_text: string;
+    small_image?: string;
+    small_text?: string;
+  };
   buttons: Array<{ label: string; url: string }>;
+}
+
+// Overlay icon uploaded in the Discord Developer Portal ("Art Assets")
+const APP_IMAGE = "ritualist";
+
+/**
+ * Picture of an ascendancy or class: the ones poe.ninja shows on its build
+ * pages ("Blood Mage" -> .../blood-mage.webp). Discord loads images given as
+ * an https address itself.
+ */
+export function ascendancyImage(name: string): string {
+  const slug = name.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+  return `https://assets.poe.ninja/poe2/classes/${slug}.webp`;
+}
+
+/** Discord wants 2 to 128 characters per line */
+function line(text: string) {
+  return text.length > 128 ? text.slice(0, 127) + "…" : text.padEnd(2, " ");
 }
 
 /** What Discord shows under "Playing My Ritualist Overlay" */
 export function buildActivity(
   gameOpen: boolean,
-  character: { className?: string; level?: number } | null,
+  character: DiscordCharacter | null,
+  league: string | null,
   startedAt: number,
 ): Activity {
-  let details: string;
-  let state: string;
-  if (gameOpen) {
-    const who = [
-      character?.className,
-      character?.level ? `niv. ${character.level}` : undefined,
-    ].filter(Boolean).join(" ");
-    details = who ? `Path of Exile 2 · ${who}` : "En jeu sur Path of Exile 2";
-    state = "Compare son équipement avec Path of Building";
-  } else {
-    details = "Prépare sa prochaine session de Path of Exile 2";
-    state = "Consulte les prix du marché";
-  }
+  const who = [
+    character?.className,
+    character?.level ? `niv. ${character.level}` : undefined,
+  ].filter(Boolean).join(" ");
+  // "Ritualist niv. 90 · Forbidden Rites"
+  const details = [who, league].filter(Boolean).join(" · ") || "Path of Exile 2";
+  const state = gameOpen ? "En jeu sur Path of Exile 2" : "Hors jeu · consulte le marché";
+
+  // the overlay's Ritualist picture in big, the played ascendancy in the corner
+  const assets: Activity["assets"] = {
+    large_image: APP_IMAGE,
+    large_text: "My Ritualist Overlay",
+    ...(character?.ascendancy
+      ? {
+          small_image: ascendancyImage(character.ascendancy),
+          small_text: who || character.ascendancy,
+        }
+      : {}),
+  };
+
   return {
-    details,
-    state,
+    details: line(details),
+    state: line(state),
     timestamps: { start: Math.floor(startedAt / 1000) },
-    assets: { large_image: "ritualist", large_text: "My Ritualist Overlay" },
+    assets,
     buttons: [{ label: "Voir l'overlay", url: PROJECT_URL }],
   };
+}
+
+// --------------------------------------------- league chosen in the overlay
+
+let leagueCache: { mtimeMs: number; league: string | null } | null = null;
+
+/** League picked in the hub (leagueId of the saved settings), e.g. "Forbidden Rites" */
+export function overlayLeague(): string | null {
+  const file = path.join(app.getPath("userData"), "apt-data", "config.json");
+  try {
+    const { mtimeMs } = fs.statSync(file);
+    if (leagueCache?.mtimeMs !== mtimeMs) {
+      const id = (JSON.parse(fs.readFileSync(file, "utf8")) as { leagueId?: unknown }).leagueId;
+      leagueCache = { mtimeMs, league: typeof id === "string" && id.trim() ? id.trim() : null };
+    }
+    return leagueCache.league;
+  } catch {
+    return null;
+  }
 }
 
 // ------------------------------------------------------------- settings
@@ -199,7 +259,9 @@ export function setupAtziriDiscord(server: Server, logger: Logger, ctx: DiscordC
 
   function update() {
     if (!pipe.ready) return;
-    const activity = enabled ? buildActivity(ctx.isGameOpen(), ctx.character(), startedAt) : null;
+    const activity = enabled
+      ? buildActivity(ctx.isGameOpen(), ctx.character(), ctx.league(), startedAt)
+      : null;
     const key = JSON.stringify(activity);
     if (key === lastSent) return;
     lastSent = key;

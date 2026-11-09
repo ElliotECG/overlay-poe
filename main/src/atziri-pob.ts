@@ -62,6 +62,8 @@ interface Settings {
   account?: string;
   /** name of the last character the game log showed as being played */
   logCharacter?: string;
+  /** last level-up of the played character in the game log (class in the game's language) */
+  logLevel?: { name: string; level: number; className?: string };
   profileUrl?: string;
   /** label of the chosen main skill (indexes change when the build changes) */
   skill?: string;
@@ -509,11 +511,48 @@ function buildInfo() {
   };
 }
 
-/** Class and level of the loaded build (shown on Discord), if one is loaded */
-export function pobCharacter(): { className?: string; level?: number } | null {
+export interface PlayedCharacter {
+  /** shown name of the class (the game's language when it comes from the game log) */
+  className?: string;
+  /** English ascendancy (or class) of the build, e.g. "Ritualist" */
+  ascendancy?: string;
+  level?: number;
+}
+
+/**
+ * The character being played, for the Discord status: the build compared
+ * with (its ascendancy, in English), with the level of the last level-up the
+ * game log showed for the played character
+ */
+export function pobCharacter(): PlayedCharacter | null {
+  const build = buildCharacter();
+  const log =
+    settings.logLevel && settings.logLevel.name === settings.logCharacter
+      ? settings.logLevel
+      : undefined;
+  if (!log) return build ? { ...build, ascendancy: build.className } : null;
+  // same class in both? ("Ritualist" / "Ritualiste": the log is in the game's language)
+  const sameClass =
+    !build?.className ||
+    !log.className ||
+    build.className.slice(0, 5).toLowerCase() === log.className.slice(0, 5).toLowerCase();
+  if (!sameClass) {
+    // another character than the build's: its class and level only
+    return { className: log.className, level: log.level };
+  }
+  return {
+    className: log.className ?? build?.className,
+    ascendancy: build?.className,
+    level: Math.max(log.level, build?.level ?? 0),
+  };
+}
+
+/** Class and level of the build compared with */
+function buildCharacter(): { className?: string; level?: number } | null {
   if (buildSummary?.ok) {
+    const className = buildSummary.className;
     return {
-      className: typeof buildSummary.className === "string" ? buildSummary.className : undefined,
+      className: typeof className === "string" && className !== "None" ? className : undefined,
       level: typeof buildSummary.level === "number" ? buildSummary.level : undefined,
     };
   }
@@ -646,7 +685,16 @@ async function handle(url: string, req: IncomingMessage, logger: Logger): Promis
   }
   if (url.startsWith("/atziri-pob/hint") && req.method === "POST") {
     // the game log shows which character is being played
-    const { name } = JSON.parse(await readBody(req)) as { name?: string };
+    const { name, level, className } = JSON.parse(await readBody(req)) as {
+      name?: string;
+      level?: number;
+      className?: string;
+    };
+    // level-up of the played character (shown on Discord)
+    if (name && typeof level === "number" && level > 0) {
+      settings.logLevel = { name, level, className };
+      saveSettings();
+    }
     if (name && name !== settings.logCharacter) {
       settings.logCharacter = name;
       saveSettings();

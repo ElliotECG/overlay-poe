@@ -159,7 +159,7 @@ export async function comparePobText(text: string | null, unknownMods = 0) {
 // "2026/11/08 21:36:09 1004763718 3ef232c2 [INFO Client 1157464] : Name ..."
 const LOG_LINE = /^(?<datetime>\d{4}\/\d{2}\/\d{2} \d{2}:\d{2}:\d{2}) \d+ \S+ \[[^\]]*\] : (?<text>.+)$/;
 // English and French clients
-const LEVEL_UP = /^(?<name>\S+) \([^)]+\) (?:is now level|a atteint le niveau|vient de passer au niveau) \d+\.?$/;
+const LEVEL_UP = /^(?<name>\S+) \((?<className>[^)]+)\) (?:is now level|a atteint le niveau|vient de passer au niveau) (?<level>\d+)\.?$/;
 const JOINED = /^(?<name>\S+) (?:has joined the area|a rejoint la zone)\.$/;
 // only ever about the player's own character
 const OWN_ONLY = /^(?<name>\S+) (?:has received |a reçu |has committed suicide\.|a mis fin à ses jours\.)/;
@@ -179,12 +179,18 @@ function handleLogLine(line: string) {
     return;
   }
   // level-ups also show party members: only trust names that never joined
-  const name = OWN_ONLY.exec(text)?.groups!.name ?? LEVEL_UP.exec(text)?.groups!.name;
-  if (!name || partyMembers.has(name) || name === lastHint) return;
+  const levelUp = LEVEL_UP.exec(text)?.groups;
+  const name = OWN_ONLY.exec(text)?.groups!.name ?? levelUp?.name;
+  if (!name || partyMembers.has(name)) return;
+  // a level-up of the played character is always worth telling (Discord status)
+  if (name === lastHint && !levelUp) return;
   const at = Date.parse(m.groups!.datetime);
   if (Number.isFinite(at) && Math.abs(Date.now() - at) > MAX_LOG_AGE_MS) return;
   lastHint = name;
-  fetch("/atziri-pob/hint", { method: "POST", body: JSON.stringify({ name }) }).catch(() => {});
+  const body = levelUp
+    ? { name, level: Number(levelUp.level), className: levelUp.className }
+    : { name };
+  fetch("/atziri-pob/hint", { method: "POST", body: JSON.stringify(body) }).catch(() => {});
 }
 
 let watching = false;
