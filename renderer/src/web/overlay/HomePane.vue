@@ -2,17 +2,37 @@
   <!-- My Ritualist Overlay: home page of the hub (editorial, light) -->
   <section class="vh-home" :class="{ 'is-entering': entering }" aria-label="Virtual Hideout">
     <div class="vh-hero">
-      <img class="vh-photo" src="/images/ritualist-hero.jpg" alt="" draggable="false" />
+      <img
+        :key="backdrop.id"
+        class="vh-photo"
+        :src="backdrop.src"
+        :style="{ objectPosition: backdrop.position }"
+        alt=""
+        draggable="false"
+      />
 
-      <h1 class="vh-title vh-title-top">
+      <h1 class="vh-title vh-title-top" :class="{ 'is-long': backdrop.name.length > 11 }">
         <span class="vh-line"><span>My</span></span>
-        <span class="vh-line is-soft"><span>ritualiste</span></span>
+        <span class="vh-line is-soft"><span>{{ backdrop.name }}</span></span>
       </h1>
 
-      <p class="vh-quote">
-        La Corruption vous a coûté<br />
-        votre foyer, mais vous a<br />
-        appris tellement plus...
+      <!-- the background of the page: one picture per ascendancy -->
+      <div class="vh-ascend" role="radiogroup" :aria-label="tr('Fond de la page', 'Page background')">
+        <span class="vh-ascend-label">{{ tr("Ascendance", "Ascendancy") }}</span>
+        <button
+          v-for="b in BACKDROPS"
+          :key="b.id"
+          type="button"
+          role="radio"
+          :aria-checked="b.id === backdrop.id"
+          @click="pickBackdrop(b.id)"
+        >
+          {{ b.label() }}
+        </button>
+      </div>
+
+      <p v-if="backdrop.quote" class="vh-quote">
+        <template v-for="(l, i) in backdrop.quote" :key="i">{{ l }}<br v-if="i < backdrop.quote.length - 1" /></template>
       </p>
 
       <div class="vh-league">
@@ -68,6 +88,59 @@ function setLeague(id: string) {
 
 function go(tab: HubTab) {
   hubTab.value = tab;
+}
+
+// Background of the page: one picture per ascendancy of Path of Exile 2
+// (only those with a picture so far), remembered on this PC
+interface Backdrop {
+  id: string;
+  /** second word of the big title: "My ritualiste" */
+  name: string;
+  label: () => string;
+  src: string;
+  /** where the picture is anchored when the window crops it */
+  position: string;
+  quote?: string[];
+}
+
+const BACKDROPS: Backdrop[] = [
+  {
+    id: "ritualist",
+    name: "ritualiste",
+    label: () => tr("Ritualiste", "Ritualist"),
+    src: "/images/ritualist-hero.jpg",
+    position: "58% 38%",
+    quote: ["La Corruption vous a coûté", "votre foyer, mais vous a", "appris tellement plus..."],
+  },
+  {
+    id: "chronomancer",
+    name: "chronomancienne",
+    label: () => tr("Chronomancienne", "Chronomancer"),
+    src: "/images/chronomancer-hero.jpg",
+    position: "55% 22%",
+  },
+];
+
+const BACKDROP_KEY = "vh-backdrop";
+function savedBackdrop(): string {
+  try {
+    return localStorage.getItem(BACKDROP_KEY) ?? "";
+  } catch {
+    return "";
+  }
+}
+const backdropId = shallowRef(savedBackdrop());
+const backdrop = computed(() => BACKDROPS.find((b) => b.id === backdropId.value) ?? BACKDROPS[0]);
+
+function pickBackdrop(id: string) {
+  if (id === backdrop.value.id) return;
+  backdropId.value = id;
+  try {
+    localStorage.setItem(BACKDROP_KEY, id);
+  } catch {
+    // not remembered: the page still changes
+  }
+  enter();
 }
 
 // "Ritualist · niv. 90": the build compared with (Path of Building)
@@ -185,6 +258,49 @@ watch(
   position: static;
   align-items: flex-end;
   text-align: right;
+}
+
+/* a long ascendancy name ("chronomancienne") keeps clear of the picture */
+.vh-title-top.is-long {
+  font-size: clamp(2.4rem, 4vw, 4rem);
+}
+
+/* ascendancy picker, top right of the photograph */
+.vh-ascend {
+  position: absolute;
+  top: clamp(20px, 6%, 56px);
+  right: var(--gutter);
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  font-size: 12px;
+}
+
+.vh-ascend-label {
+  color: var(--graphite);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.ar-hub .vh-home .vh-ascend button {
+  padding: 4px 0;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink);
+  background-image: linear-gradient(var(--violet), var(--violet));
+  background-repeat: no-repeat;
+  background-position: 0 100%;
+  background-size: 0 1px;
+  transition:
+    background-size 0.35s var(--ease),
+    color 0.2s var(--ease);
+}
+
+.ar-hub .vh-home .vh-ascend button:hover,
+.ar-hub .vh-home .vh-ascend button[aria-checked="true"] {
+  color: var(--violet-deep);
+  background-size: 100% 1px;
 }
 
 .vh-quote {
