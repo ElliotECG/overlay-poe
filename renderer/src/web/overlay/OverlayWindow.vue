@@ -2,6 +2,7 @@
   <div
     id="overlay-window"
     class="overflow-hidden relative w-full h-full"
+    :class="{ 'atz-light': ingameStyle === 'editorial' }"
     :style="{
       '--game-panel': poePanelWidth.toFixed(4) + 'px',
       '--atz-x': frameInset.x.toFixed(2) + 'vw',
@@ -107,6 +108,7 @@ import MarketPrices from "./MarketPrices.vue";
 import { startDeathRecap } from "./atziri-death-recap";
 import { startPobLogWatch } from "./atziri-pob";
 import PobCompareCard from "./PobCompareCard.vue";
+import { ingameStyle } from "@/web/atziri-theme";
 
 type WMID = Widget["wmId"];
 
@@ -486,6 +488,7 @@ export default defineComponent({
 
     return {
       t,
+      ingameStyle,
       poePanelWidth,
       overlayBackground,
       atziriFrame,

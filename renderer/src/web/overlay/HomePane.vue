@@ -204,6 +204,8 @@ watch(
 /* hero: the photograph, the two titles, the quote, the call to action */
 .vh-hero {
   position: relative;
+  /* the titles are sized on the page (the overlay frame), not the screen */
+  container-type: size;
   flex: 1;
   min-height: 0;
   overflow: hidden;
@@ -227,7 +229,7 @@ watch(
   margin: 0;
   display: flex;
   flex-direction: column;
-  font-size: clamp(3rem, 6.2vw, 6rem);
+  font-size: clamp(2.6rem, 6.2cqw, 6rem);
   font-weight: 500;
   line-height: 0.96;
   letter-spacing: -0.04em;
@@ -262,7 +264,7 @@ watch(
 
 /* a long ascendancy name ("chronomancienne") keeps clear of the picture */
 .vh-title-top.is-long {
-  font-size: clamp(2.4rem, 4vw, 4rem);
+  font-size: clamp(2rem, 4cqw, 4rem);
 }
 
 /* ascendancy picker, top right of the photograph */

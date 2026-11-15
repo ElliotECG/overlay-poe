@@ -638,7 +638,7 @@ export default defineComponent({
   gap: 8px;
   margin-top: 6px;
   padding: 3px 8px;
-  border-radius: 5px;
+  border-radius: 0;
   cursor: pointer;
   user-select: none;
   background: theme("colors.blue.900");
@@ -659,7 +659,7 @@ export default defineComponent({
   text-transform: none;
   letter-spacing: 0;
   padding: 0 6px;
-  border-radius: 4px;
+  border-radius: 0;
   border: 1px solid theme("colors.blue.800");
   color: theme("colors.blue.300");
 

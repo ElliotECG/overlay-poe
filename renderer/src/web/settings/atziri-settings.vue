@@ -391,10 +391,19 @@
 
   <!-- Overlay colors: applied immediately, remembered on this PC -->
   <div class="atz-palette">
-    <div class="atz-palette-title">{{ tr("Couleurs des fenêtres en jeu", "In-game window colors") }}</div>
+    <div class="atz-palette-title">{{ tr("Fenêtres en jeu", "In-game windows") }}</div>
     <div class="atz-palette-sub" style="text-transform: none; letter-spacing: 0">
-      {{ tr("Vérification du prix, comparaison Path of Building… Le hub et les réglages gardent le style Virtual Hideout.", "Price check, Path of Building comparison… The hub and the settings keep the Virtual Hideout style.") }}
+      {{ tr("Vérification du prix (Ctrl + D), comparaison Path of Building (Alt + D)…", "Price check (Ctrl + D), Path of Building comparison (Alt + D)…") }}
     </div>
+    <div class="flex flex-col gap-1 mb-4">
+      <ui-radio :model-value="ingameStyle" value="editorial" @update:model-value="setIngameStyle('editorial')">
+        {{ tr("Virtual Hideout (clair, comme l'accueil)", "Virtual Hideout (light, like the home page)") }}
+      </ui-radio>
+      <ui-radio :model-value="ingameStyle" value="theme" @update:model-value="setIngameStyle('theme')">
+        {{ tr("Sombre (moins lumineux en jeu, couleurs au choix)", "Dark (less bright in game, colors of your choice)") }}
+      </ui-radio>
+    </div>
+    <template v-if="ingameStyle === 'theme'">
     <div class="atz-palette-sub">{{ tr("Thèmes de la Ritualiste", "Ritualist themes") }}</div>
     <div class="flex flex-wrap gap-2 mb-4">
       <button
@@ -501,6 +510,7 @@
         </label>
       </div>
     </div>
+    </template>
   </div>
   </div>
 </template>
@@ -536,6 +546,8 @@ import {
   DEFAULT_THEME,
   themeColors,
   setTheme,
+  ingameStyle,
+  setIngameStyle,
   type ThemeColors,
 } from "../atziri-theme";
 import {

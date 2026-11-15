@@ -71,6 +71,75 @@ h3 {
   background: rgb(var(--c-gray-900));
 }
 
+/* State colors (good, bad, warning, price gold), readable on the dark theme
+   and, darker, on the Virtual Hideout paper */
+:root {
+  --atz-ok: #7fd38f;
+  --atz-bad: #ec6b6b;
+  --atz-warn: #e8a33a;
+  --atz-gold: #e4c29a;
+}
+
+.atz-light {
+  --atz-ok: #1d7a45;
+  --atz-bad: #c0352c;
+  --atz-warn: #9a5800;
+  --atz-gold: #8a5a12;
+}
+
+/* Virtual Hideout windows over the game (price check, item check, PoB card):
+   sheets of paper with square corners, the grotesk of the home page */
+#overlay-window.atz-light,
+#desktop-window.atz-light {
+  font-family: "Inter", "Segoe UI", system-ui, sans-serif;
+}
+
+.atz-light .widget-default-style {
+  border-radius: 0;
+  background: rgb(var(--c-gray-800));
+  border: 1px solid rgb(var(--c-gray-700));
+  box-shadow: 0 1.25rem 2.5rem -1rem rgba(17, 16, 20, 0.45);
+}
+
+.atz-light .rounded,
+.atz-light .rounded-lg,
+.atz-light .rounded-t,
+.atz-light .rounded-b,
+.atz-light .rounded-l,
+.atz-light .rounded-r,
+.atz-light .rounded-tl {
+  border-radius: 0;
+}
+
+/* Tailwind tints made for a dark background */
+.atz-light .text-orange-300,
+.atz-light .text-orange-400,
+.atz-light .text-orange-500,
+.atz-light .text-yellow-500 {
+  color: var(--atz-warn);
+}
+
+.atz-light .text-red-200,
+.atz-light .text-red-300,
+.atz-light .text-red-400,
+.atz-light .text-red-500 {
+  color: var(--atz-bad);
+}
+
+.atz-light .text-green-500,
+.atz-light .text-green-600 {
+  color: var(--atz-ok);
+}
+
+.atz-light .text-white {
+  color: rgb(var(--c-gray-200));
+}
+
+/* the game's item tooltip stays black, like in the game */
+.atz-light .bg-black .text-white {
+  color: #fff;
+}
+
 /* Corner handle to resize the Atziri frame (double-click resets the size) */
 .atziri-resize {
   position: absolute;

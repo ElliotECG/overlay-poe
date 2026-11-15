@@ -149,6 +149,6 @@ export default defineComponent({
 
 <style module>
 .golden {
-  color: #e4c29a;
+  color: var(--atz-gold);
 }
 </style>

@@ -122,7 +122,7 @@ const view = computed(() => {
   margin: 0 0 8px;
   padding: 8px 12px;
   border: 1px solid theme("colors.blue.400");
-  border-radius: 8px;
+  border-radius: 0;
   background: linear-gradient(
     180deg,
     rgb(var(--c-blue-900) / 0.95),
@@ -146,15 +146,15 @@ const view = computed(() => {
 }
 
 .atz-conf-low {
-  color: #e05a4f;
+  color: var(--atz-bad);
 }
 
 .atz-conf-medium {
-  color: #e0a84f;
+  color: var(--atz-warn);
 }
 
 .atz-conf-high {
-  color: #6fc46a;
+  color: var(--atz-ok);
 }
 
 .atz-hero-sell {

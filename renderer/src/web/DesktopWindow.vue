@@ -1,6 +1,10 @@
 <template>
   <!-- My Ritualist Overlay: the hub in a normal window (main/src/windowing/DesktopWindow.ts) -->
-  <div id="desktop-window" class="overflow-hidden relative w-full h-full">
+  <div
+    id="desktop-window"
+    class="overflow-hidden relative w-full h-full"
+    :class="{ 'atz-light': ingameStyle === 'editorial' }"
+  >
     <div class="atziri-frame atz-desktop-frame"></div>
     <MarketPrices v-show="!settingsOpen" :visible="!settingsOpen" />
     <component
@@ -25,6 +29,7 @@ import type { Widget, WidgetManager } from "./overlay/interfaces";
 import { registry } from "./overlay/widget-registry.js";
 import MarketPrices from "./overlay/MarketPrices.vue";
 import PobCompareCard from "./overlay/PobCompareCard.vue";
+import { ingameStyle } from "./atziri-theme";
 
 usePoeninja();
 useLeagues().load();

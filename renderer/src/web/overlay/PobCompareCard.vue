@@ -374,6 +374,13 @@ function errorText(error?: string) {
   font-variant-numeric: tabular-nums;
 }
 
+/* Virtual Hideout: a white sheet with square corners */
+.atz-light .pob-card {
+  border-radius: 0;
+  background: rgb(var(--c-gray-800));
+  box-shadow: 0 1.25rem 2.5rem -1rem rgba(17, 16, 20, 0.45);
+}
+
 .pob-head {
   display: flex;
   justify-content: space-between;
@@ -473,7 +480,7 @@ function errorText(error?: string) {
 .pob-chip {
   padding: 2px 8px;
   border: 1px solid rgb(var(--c-gray-700));
-  border-radius: 6px;
+  border-radius: 0;
   font-size: 13px;
 }
 
@@ -487,11 +494,11 @@ function errorText(error?: string) {
 }
 
 .pob-card .is-good {
-  color: #7fd38f;
+  color: var(--atz-ok);
 }
 
 .pob-card .is-bad {
-  color: #ec6b6b;
+  color: var(--atz-bad);
 }
 
 .pob-card .is-same {
@@ -500,17 +507,17 @@ function errorText(error?: string) {
 
 .pob-warn {
   margin-top: 8px;
-  color: #e8a33a;
+  color: var(--atz-warn);
   font-size: 13px;
 }
 
 .pob-error {
-  color: #e8a33a;
+  color: var(--atz-warn);
 }
 
 .pob-note {
   margin-top: 10px;
-  color: #e8a33a;
+  color: var(--atz-warn);
   font-size: 12.5px;
 }
 
@@ -521,7 +528,7 @@ function errorText(error?: string) {
 }
 
 .pob-build.is-old {
-  color: #e8a33a;
+  color: var(--atz-warn);
 }
 
 .pob-unparsed {

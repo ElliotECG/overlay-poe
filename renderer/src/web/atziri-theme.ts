@@ -182,6 +182,38 @@ function editorialScales(): Record<string, RGB> {
   };
 }
 
+/**
+ * Style of the windows opened over the game (price check, Path of Building
+ * card...): "editorial", like the home page, or "theme", the dark colors
+ * above (less bright over a dark game). Remembered on this PC.
+ */
+export type IngameStyle = "editorial" | "theme";
+const INGAME_KEY = "atz-ingame-style";
+
+function loadIngameStyle(): IngameStyle {
+  try {
+    return localStorage.getItem(INGAME_KEY) === "theme" ? "theme" : "editorial";
+  } catch {
+    return "editorial";
+  }
+}
+
+export const ingameStyle = shallowRef<IngameStyle>(loadIngameStyle());
+
+export function setIngameStyle(style: IngameStyle) {
+  ingameStyle.value = style;
+  try {
+    localStorage.setItem(INGAME_KEY, style);
+  } catch {
+    // ignore unavailable storage
+  }
+}
+
+// another window of the app (overlay / desktop) changed it
+window.addEventListener("storage", (e) => {
+  if (e.key === INGAME_KEY) ingameStyle.value = loadIngameStyle();
+});
+
 /** Pages marked .atz-light use the editorial scales instead of the theme */
 function injectEditorialPalette() {
   if (document.getElementById("atz-editorial")) return;
