@@ -1,13 +1,24 @@
 <template>
   <!-- My Ritualist Overlay: Shift + Space hub -->
   <div class="ar-hub" @click.stop>
-    <header class="ar-top">
+    <!-- Home page (Virtual Hideout): its own header and navigation -->
+    <HomePane
+      v-show="hubTab === 'home'"
+      :visible="visible && hubTab === 'home'"
+      @settings="openSettings"
+    />
+    <header v-show="hubTab !== 'home'" class="ar-top">
       <div class="ar-topbar">
-        <div class="ar-brand">
+        <button
+          type="button"
+          class="ar-brand"
+          :title="tr('Accueil', 'Home')"
+          @click="hubTab = 'home'"
+        >
           <!-- Ritualist medallion (avatar picture) -->
           <span class="ar-logo ar-logo-ritual" aria-hidden="true"></span>
           <span class="ar-brand-name">Ritualist</span>
-        </div>
+        </button>
         <div class="ar-top-right">
           <ConverterBox />
           <label class="ar-league">
@@ -70,6 +81,14 @@
             unseenDeaths
           }}</span>
         </button>
+        <button
+          type="button"
+          role="tab"
+          :aria-selected="hubTab === 'stats'"
+          @click="hubTab = 'stats'"
+        >
+          <i class="fas fa-user-shield ar-tabfa"></i>Stats
+        </button>
         <!-- Historique: icon only, far right -->
         <button
           type="button"
@@ -94,6 +113,7 @@
 
     <HistoryPane v-if="hubTab === 'history'" />
     <DeathRecapPane v-if="hubTab === 'death'" />
+    <StatsPane v-if="hubTab === 'stats'" @settings="openSettings" />
 
     <div v-show="hubTab === 'market'" class="ar-body">
       <fieldset class="ar-nav">
@@ -327,6 +347,8 @@ import { poeWebApi } from "@/web/Config";
 import WebPane from "./WebPane.vue";
 import HistoryPane from "./HistoryPane.vue";
 import DeathRecapPane from "./DeathRecapPane.vue";
+import HomePane from "./HomePane.vue";
+import StatsPane from "./StatsPane.vue";
 import { unseenDeaths } from "./atziri-death-recap";
 import ConverterBox from "./ConverterBox.vue";
 import { setRates, rates } from "./atziri-money";
@@ -1024,6 +1046,23 @@ const rows = computed(() => {
   gap: 14px;
   padding-right: 20px;
   border-right: 1px solid var(--line);
+}
+
+/* the brand is the way back to the home page */
+.ar-hub button.ar-brand {
+  border: 0;
+  border-right: 1px solid var(--line);
+  border-radius: 0;
+  background: none;
+  padding: 0 20px 0 0;
+}
+
+.ar-hub button.ar-brand:hover {
+  border-color: var(--line);
+}
+
+.ar-hub button.ar-brand:hover .ar-brand-name {
+  color: var(--accent);
 }
 
 .ar-brand-name {

@@ -706,6 +706,11 @@ async function handle(url: string, req: IncomingMessage, logger: Logger): Promis
     }
     return { ok: true };
   }
+  if (url.startsWith("/atziri-pob/load") && req.method === "POST") {
+    // the Stats page of the hub: the build loaded as it is (no forced refresh)
+    await ensureBuild(logger);
+    return status();
+  }
   if (url.startsWith("/atziri-pob/refresh") && req.method === "POST") {
     await ensureBuild(logger, true);
     return status();

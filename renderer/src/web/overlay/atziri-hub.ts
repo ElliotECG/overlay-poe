@@ -4,7 +4,7 @@ import { isFrench } from "@/web/atziri-lang";
 import { poeWebApi } from "@/web/Config";
 
 export type WebTabId = "poedb" | "craft" | "ninja" | "trade";
-export type HubTab = "market" | "history" | "death" | WebTabId;
+export type HubTab = "home" | "market" | "stats" | "history" | "death" | WebTabId;
 
 export interface WebTab {
   id: WebTabId;
@@ -35,7 +35,8 @@ export const WEB_TABS: WebTab[] = [
   },
 ];
 
-export const hubTab = shallowRef<HubTab>("market");
+// My Ritualist Overlay: the hub opens on its home page
+export const hubTab = shallowRef<HubTab>("home");
 
 /**
  * Puts a page in the overlay language: French PoEDB / Craft of Exile when the
