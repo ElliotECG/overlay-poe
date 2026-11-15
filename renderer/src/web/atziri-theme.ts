@@ -131,4 +131,65 @@ export function setTheme(colors: ThemeColors) {
 
 export function initTheme() {
   applyTheme(themeColors.value);
+  injectEditorialPalette();
+}
+
+// --------------------------------------------- Virtual Hideout (editorial)
+
+/**
+ * The art direction of the home page, for the whole hub and the settings:
+ * paper white, ink black, graphite text, and the violet of the ritual smoke.
+ * The in-game windows (price check, Path of Building card) keep the theme
+ * above: a white window over a dark game would dazzle.
+ */
+export const EDITORIAL = {
+  paper: "#f4f3f6",
+  sheet: "#ffffff",
+  rule: "#e2e0e7",
+  ink: "#111014",
+  graphite: "#5f5c6b",
+  violet: "#6b3fd1",
+};
+
+/** The gray and blue scales of a light page: lower numbers are darker */
+function editorialScales(): Record<string, RGB> {
+  const paper = toRgb(EDITORIAL.paper);
+  const sheet = toRgb(EDITORIAL.sheet);
+  const rule = toRgb(EDITORIAL.rule);
+  const ink = toRgb(EDITORIAL.ink);
+  const graphite = toRgb(EDITORIAL.graphite);
+  const violet = toRgb(EDITORIAL.violet);
+  return {
+    "gray-900": paper,
+    "gray-800": sheet,
+    "gray-700": rule,
+    "gray-600": mix(rule, graphite, 0.45),
+    "gray-500": mix(rule, graphite, 0.75),
+    "gray-400": graphite,
+    "gray-300": mix(graphite, ink, 0.5),
+    "gray-200": ink,
+    "gray-100": mix(ink, BLACK, 0.4),
+    // on paper the light tints are the soft ones, the dark tints the strong ones
+    "blue-100": mix(violet, BLACK, 0.45),
+    "blue-200": mix(violet, BLACK, 0.3),
+    "blue-300": mix(violet, BLACK, 0.15),
+    "blue-400": violet,
+    "blue-500": mix(violet, BLACK, 0.12),
+    "blue-600": mix(violet, BLACK, 0.27),
+    "blue-700": mix(violet, paper, 0.55),
+    "blue-800": mix(violet, paper, 0.75),
+    "blue-900": mix(violet, paper, 0.88),
+  };
+}
+
+/** Pages marked .atz-light use the editorial scales instead of the theme */
+function injectEditorialPalette() {
+  if (document.getElementById("atz-editorial")) return;
+  const vars = Object.entries(editorialScales())
+    .map(([name, rgb]) => `--c-${name}: ${rgb.join(" ")};`)
+    .join(" ");
+  const style = document.createElement("style");
+  style.id = "atz-editorial";
+  style.textContent = `.atz-light { ${vars} color-scheme: light; }`;
+  document.head.appendChild(style);
 }

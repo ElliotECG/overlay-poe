@@ -3,13 +3,13 @@
     <!-- Atziri Exchange: the patrons banner of the original app is not shown -->
     <div
       :class="$style.window"
-      class="grow layout-column"
+      class="grow layout-column atz-light"
       :onMouseenter="hidePodium"
     >
       <AppTitleBar @close="cancel" :title="t('settings.title')">
         <!-- Atziri Exchange: back to the Market page of the Shift + Space hub -->
         <button type="button" :class="$style.backBtn" @click="cancel">
-          ‹ Economy
+          ‹ Virtual Hideout
         </button>
       </AppTitleBar>
       <div class="flex grow min-h-0">
@@ -353,17 +353,18 @@ function flatJoin<T, J>(arr: T[][], joinEl: () => J) {
 <style lang="postcss" module>
 /* Atziri Exchange: settings fill the Atziri frame of the Shift + Space page */
 .window {
+  /* Virtual Hideout: the settings are a page of the hub, edge to edge on paper */
   position: absolute;
-  top: calc(var(--atz-y, 7vh) + 0.75rem);
+  top: var(--atz-y, 7vh);
   /* !important: the global .layout-column class sets height: 100% */
-  height: calc(100vh - 2 * var(--atz-y, 7vh) - 2rem) !important;
-  left: calc(var(--atz-x, 10vw) + 1.5rem);
-  right: calc(var(--atz-x, 10vw) + 1.5rem);
+  height: calc(100vh - 2 * var(--atz-y, 7vh)) !important;
+  left: var(--atz-x, 10vw);
+  right: var(--atz-x, 10vw);
   overflow: hidden;
-  background: rgb(var(--c-gray-800) / 0.92);
-  /* no backdrop blur: costly without GPU acceleration, panels are opaque enough */
-  border: 1px solid rgb(var(--c-gray-700));
-  border-radius: 8px;
+  background: rgb(var(--c-gray-900));
+  color: rgb(var(--c-gray-200));
+  font-family: "Inter", "Segoe UI", system-ui, sans-serif;
+  border-radius: 0.75rem;
   z-index: 2;
 
   &:global {
@@ -383,23 +384,23 @@ function flatJoin<T, J>(arr: T[][], joinEl: () => J) {
   text-align: left;
   @apply p-2;
   line-height: 1;
-  @apply text-gray-600;
-  @apply rounded-l;
+  @apply text-gray-400;
 
   &:hover {
-    @apply text-gray-100;
+    @apply text-gray-200;
   }
 
   &.active {
-    @apply text-gray-400;
+    @apply text-blue-600;
     @apply bg-gray-800;
+    font-weight: 600;
   }
 }
 
 .quit-btn {
-  @apply text-gray-600;
-  @apply border border-gray-800;
-  @apply p-1 mt-2 mr-2 rounded;
+  @apply text-gray-400;
+  @apply border border-gray-700;
+  @apply p-1 mt-2 mr-2;
 
   &:hover {
     @apply text-red-400;

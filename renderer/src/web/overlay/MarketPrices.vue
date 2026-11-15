@@ -1,107 +1,32 @@
 <template>
   <!-- My Ritualist Overlay: Shift + Space hub -->
-  <div class="ar-hub" @click.stop>
-    <!-- Home page (Virtual Hideout): its own header and navigation -->
-    <HomePane
-      v-show="hubTab === 'home'"
-      :visible="visible && hubTab === 'home'"
-      @settings="openSettings"
-    />
-    <header v-show="hubTab !== 'home'" class="ar-top">
-      <div class="ar-topbar">
-        <button
-          type="button"
-          class="ar-brand"
-          :title="tr('Accueil', 'Home')"
-          @click="hubTab = 'home'"
-        >
-          <!-- Ritualist medallion (avatar picture) -->
-          <span class="ar-logo ar-logo-ritual" aria-hidden="true"></span>
-          <span class="ar-brand-name">Ritualist</span>
-        </button>
-        <div class="ar-top-right">
-          <ConverterBox />
-          <label class="ar-league">
-            <span>{{ tr("Ligue actuelle :", "Current league:") }}</span>
-            <select
-              :value="leagues.selectedId.value"
-              @change="setLeague(($event.target as HTMLSelectElement).value)"
-            >
-              <option
-                v-if="leagueName && !leagues.list.value.some((l) => l.id === leagueName)"
-                :value="leagueName"
-              >
-                {{ leagueName }}
-              </option>
-              <option v-for="l in leagues.list.value" :key="l.id" :value="l.id">
-                {{ l.text }}
-              </option>
-            </select>
-          </label>
-          <button
-            type="button"
-            class="ar-square-btn"
-            :title="tr('Paramètres', 'Settings')"
-            @click="openSettings"
+  <div class="ar-hub atz-light" @click.stop>
+    <!-- Virtual Hideout: one header for every page of the hub -->
+    <HubHeader :price-alerts="alertCount" @settings="openSettings">
+      <template v-if="hubTab !== 'home'">
+        <ConverterBox />
+        <label class="ar-league">
+          <span class="sr-only">{{ tr("Ligue actuelle", "Current league") }}</span>
+          <select
+            :value="leagues.selectedId.value"
+            @change="setLeague(($event.target as HTMLSelectElement).value)"
           >
-            <i class="fas fa-cog"></i>
-          </button>
-        </div>
-      </div>
-      <nav class="ar-tabs" role="tablist">
-        <button
-          type="button"
-          role="tab"
-          :aria-selected="hubTab === 'market'"
-          @click="hubTab = 'market'"
-        >
-          <i class="fas fa-coins ar-tabfa"></i>{{ tr("Économie", "Economy") }}
-          <span v-if="alertCount" class="ar-badge" :title="tr('Alertes de prix', 'Price alerts')">{{
-            alertCount
-          }}</span>
-        </button>
-        <button
-          v-for="tab in WEB_TABS"
-          :key="tab.id"
-          type="button"
-          role="tab"
-          :aria-selected="hubTab === tab.id"
-          @click="hubTab = tab.id"
-        >
-          <i class="fas ar-tabfa" :class="tab.icon"></i>{{ tab.label }}
-        </button>
-        <button
-          type="button"
-          role="tab"
-          :aria-selected="hubTab === 'death'"
-          @click="hubTab = 'death'"
-        >
-          <i class="fas fa-skull ar-tabfa"></i>Death Recap
-          <span v-if="unseenDeaths" class="ar-badge" :title="tr('Nouvelles morts', 'New deaths')">{{
-            unseenDeaths
-          }}</span>
-        </button>
-        <button
-          type="button"
-          role="tab"
-          :aria-selected="hubTab === 'stats'"
-          @click="hubTab = 'stats'"
-        >
-          <i class="fas fa-user-shield ar-tabfa"></i>Stats
-        </button>
-        <!-- Historique: icon only, far right -->
-        <button
-          type="button"
-          role="tab"
-          class="ar-tab-icononly"
-          :title="tr('Historique et rentabilité', 'History and profit')"
-          :aria-selected="hubTab === 'history'"
-          @click="hubTab = 'history'"
-        >
-          <i class="fas fa-history ar-tabfa"></i>
-        </button>
-      </nav>
-    </header>
+            <option
+              v-if="leagueName && !leagues.list.value.some((l) => l.id === leagueName)"
+              :value="leagueName"
+            >
+              {{ leagueName }}
+            </option>
+            <option v-for="l in leagues.list.value" :key="l.id" :value="l.id">
+              {{ l.text }}
+            </option>
+          </select>
+          <i class="fas fa-chevron-down" aria-hidden="true"></i>
+        </label>
+      </template>
+    </HubHeader>
+
+    <HomePane v-show="hubTab === 'home'" :visible="visible && hubTab === 'home'" />
 
     <!-- One web page per tab, kept alive (v-show) so each keeps its state -->
     <WebPane
@@ -302,7 +227,7 @@
                   <polyline
                     :points="row.sparkPoints"
                     fill="none"
-                    :stroke="row.change >= 0 ? '#9cc46f' : '#d9584a'"
+                    :stroke="row.change >= 0 ? '#1d7a45' : '#c0352c'"
                     stroke-width="1.6"
                     vector-effect="non-scaling-stroke"
                   />
@@ -348,6 +273,7 @@ import WebPane from "./WebPane.vue";
 import HistoryPane from "./HistoryPane.vue";
 import DeathRecapPane from "./DeathRecapPane.vue";
 import HomePane from "./HomePane.vue";
+import HubHeader from "./HubHeader.vue";
 import StatsPane from "./StatsPane.vue";
 import { unseenDeaths } from "./atziri-death-recap";
 import ConverterBox from "./ConverterBox.vue";
@@ -983,198 +909,138 @@ const rows = computed(() => {
 
 <style lang="postcss">
 /* Ritualist theme: colors come from the theme variables (atziri-theme.ts) */
+/* Virtual Hideout: the whole hub is an editorial page (paper, ink, graphite,
+   ritual violet); .atz-light gives it the light gray and violet scales */
 .ar-hub {
-  --bg: rgb(var(--c-gray-900));
-  --surface: rgb(var(--c-gray-800) / 0.92);
-  --line: rgb(var(--c-gray-700));
-  --fg: rgb(var(--c-gray-200));
-  --muted: rgb(var(--c-gray-400));
-  --accent: rgb(var(--c-blue-400));
+  --paper: #f4f3f6;
+  --sheet: #ffffff;
+  --rule: #e2e0e7;
+  --ink: #111014;
+  --graphite: #5f5c6b;
+  --violet: #6b3fd1;
+  --violet-deep: #4a2a99;
+  --ease: cubic-bezier(0.16, 1, 0.3, 1);
+  --gutter: clamp(20px, 4.5vw, 64px);
+
+  --bg: var(--paper);
+  --surface: var(--sheet);
+  --line: var(--rule);
+  --fg: var(--ink);
+  --muted: var(--graphite);
+  --accent: var(--violet);
   --accent-soft: rgb(var(--c-blue-900));
-  --ok: #7fd38f;
-  --bad: #ec6b6b;
-  /* one modern sans-serif everywhere; tabular figures line numbers up */
+  --ok: #1d7a45;
+  --bad: #c0352c;
+  /* one grotesk everywhere; tabular figures line numbers up */
   --display: "Inter", "Segoe UI", system-ui, sans-serif;
   --body: "Inter", "Segoe UI", system-ui, sans-serif;
   --mono: "Inter", "Segoe UI", system-ui, sans-serif;
   font-variant-numeric: tabular-nums;
 
+  /* the page fills the frame of the overlay, edge to edge */
   position: absolute;
-  top: calc(var(--atz-y, 7vh) + 0.75rem);
-  bottom: calc(var(--atz-y, 7vh) + 1.25rem);
-  left: calc(var(--atz-x, 10vw) + 1.5rem);
-  right: calc(var(--atz-x, 10vw) + 1.5rem);
+  top: var(--atz-y, 7vh);
+  bottom: var(--atz-y, 7vh);
+  left: var(--atz-x, 10vw);
+  right: var(--atz-x, 10vw);
   z-index: 1;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
+  border-radius: 0.75rem;
+  background: var(--paper);
   color: var(--fg);
   font-family: var(--body);
-  font-size: 15px;
+  font-size: 14px;
   line-height: 1.45;
 }
 
+.ar-hub ::selection {
+  background: var(--violet);
+  color: #fff;
+}
+
+.ar-hub :focus-visible {
+  outline: 2px solid var(--violet);
+  outline-offset: 2px;
+}
+
+.ar-hub * {
+  scrollbar-color: rgb(var(--c-gray-600)) transparent;
+}
+
+/* buttons: sharp, outlined in ink; the hover turns them violet */
 .ar-hub button {
   font: inherit;
   cursor: pointer;
-  border-radius: 6px;
+  border-radius: 0;
   border: 1px solid var(--line);
   background: var(--surface);
   color: var(--fg);
   padding: 8px 14px;
+  transition:
+    border-color 0.2s var(--ease),
+    color 0.2s var(--ease),
+    background-color 0.2s var(--ease);
 }
 
 .ar-hub button:hover {
-  border-color: var(--accent);
+  border-color: var(--ink);
 }
 
-/* Header: avatar and name on the left, converter, league and settings on the
-   right (the name never changes, so the avatar never moves) */
-.ar-top {
-  flex: none;
-}
-
-.ar-topbar {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 6px 4px 12px;
-}
-
-.ar-brand {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding-right: 20px;
-  border-right: 1px solid var(--line);
-}
-
-/* the brand is the way back to the home page */
-.ar-hub button.ar-brand {
-  border: 0;
-  border-right: 1px solid var(--line);
+.ar-hub input,
+.ar-hub select,
+.ar-hub textarea {
   border-radius: 0;
-  background: none;
-  padding: 0 20px 0 0;
 }
 
-.ar-hub button.ar-brand:hover {
-  border-color: var(--line);
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
 }
 
-.ar-hub button.ar-brand:hover .ar-brand-name {
-  color: var(--accent);
-}
-
-.ar-brand-name {
-  font-size: 1.75rem;
-  font-weight: 600;
-  letter-spacing: 0.01em;
-  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.85);
-}
-
-.ar-top-right {
-  margin-left: auto;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
+/* League, in the header: an underlined selector like on the home page */
 .ar-league {
-  display: flex;
+  position: relative;
+  display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 0 4px 0 14px;
-  height: 40px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: rgb(var(--c-gray-900) / 0.85);
-  font-size: 14px;
+  color: var(--ink);
 
   select {
-    height: 100%;
-    border: none;
+    appearance: none;
+    border: 0;
+    border-bottom: 1px solid var(--ink);
     background: transparent;
-    color: var(--fg);
-    font: inherit;
-    font-weight: 500;
+    color: inherit;
+    font: 500 12px/1.4 var(--body);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 4px 18px 4px 0;
     cursor: pointer;
-    outline: none;
+    outline-offset: 3px;
+  }
+
+  select:hover {
+    color: var(--violet-deep);
+    border-color: var(--violet);
   }
 
   option {
-    background: var(--bg);
+    background: var(--sheet);
+    color: var(--ink);
+    text-transform: none;
   }
-}
 
-.ar-hub .ar-square-btn {
-  width: 40px;
-  height: 40px;
-  padding: 0;
-  border-radius: 8px;
-  background: rgb(var(--c-gray-900) / 0.85);
-  color: var(--fg);
-  font-size: 17px;
-}
-
-.ar-logo {
-  width: 56px;
-  height: 56px;
-  border-radius: 50%;
-  border: 2px solid var(--accent);
-  box-shadow: 0 0 18px color-mix(in srgb, var(--accent) 40%, transparent);
-  object-fit: cover;
-  flex: none;
-}
-
-/* Ritualist avatar; slightly zoomed so the white corners of the picture,
-   outside its purple ring, never show */
-.ar-logo-ritual {
-  display: block;
-  background: #0b0c16 url("/images/ritualist-avatar.png") no-repeat center;
-  background-size: 108%;
-}
-
-/* Tabs: flat, icon + name, the open one underlined in the accent color */
-.ar-tabs {
-  display: flex;
-  gap: 2px;
-  padding: 0 4px;
-  border-bottom: 1px solid var(--line);
-  background: rgb(var(--c-gray-900) / 0.8);
-}
-
-.ar-hub .ar-tabs button {
-  flex: none;
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  border: none;
-  border-bottom: 3px solid transparent;
-  border-radius: 0;
-  background: transparent;
-  color: rgb(var(--c-gray-300));
-  padding: 14px 18px 11px;
-  font-weight: 500;
-  font-size: 16px;
-  margin-bottom: -1px;
-}
-
-.ar-hub .ar-tabs button:hover {
-  color: var(--fg);
-}
-
-.ar-hub .ar-tabs button[aria-selected="true"] {
-  color: var(--fg);
-  font-weight: 600;
-  border-bottom-color: var(--accent);
-}
-
-.ar-tabico {
-  width: 22px;
-  height: 22px;
-  object-fit: contain;
-  filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.6));
-  opacity: 0.75;
+  .fa-chevron-down {
+    position: absolute;
+    right: 2px;
+    font-size: 8px;
+    pointer-events: none;
+  }
 }
 
 /* Converter, in the header */
@@ -1184,8 +1050,8 @@ const rows = computed(() => {
   gap: 6px;
   padding: 3px 8px;
   border: 1px solid var(--line);
-  border-radius: 8px;
-  background: rgb(var(--c-gray-900) / 0.85);
+  border-radius: 0;
+  background: var(--sheet);
   font-family: var(--mono);
   font-size: 13px;
 }
@@ -1202,7 +1068,7 @@ const rows = computed(() => {
 
 .ar-hub .ar-conv-from button {
   padding: 2px;
-  border-radius: 5px;
+  border-radius: 0;
   background: transparent;
   border-color: transparent;
   opacity: 0.55;
@@ -1282,7 +1148,7 @@ const rows = computed(() => {
   font-size: 11px;
   line-height: 1.2rem;
   text-align: center;
-  color: rgb(var(--c-gray-900));
+  color: #fff;
   background: var(--accent);
 }
 
@@ -1312,10 +1178,10 @@ const rows = computed(() => {
 .ar-hub .ar-alert {
   flex: none;
   padding: 0 6px;
-  border-radius: 5px;
+  border-radius: 0;
   font-family: var(--mono);
   font-size: 11.5px;
-  background: rgb(var(--c-gray-900) / 0.8);
+  background: var(--sheet);
 }
 
 .ar-fav-settings {
@@ -1349,12 +1215,11 @@ const rows = computed(() => {
 }
 
 .ar-dr-status.is-recording .ar-dr-dot {
-  background: #e0362c;
-  box-shadow: 0 0 6px #e0362c;
+  background: var(--bad);
 }
 
 .ar-dr-warn {
-  color: #e8a33a;
+  color: #9a5800;
 }
 
 .ar-dr-row {
@@ -1372,9 +1237,9 @@ const rows = computed(() => {
   flex: 1;
   max-height: 100%;
   object-fit: contain;
-  background: #000;
+  background: var(--ink);
   border: 1px solid var(--line);
-  border-radius: 6px;
+  border-radius: 0;
 }
 
 /* Historique tab */
@@ -1404,8 +1269,8 @@ const rows = computed(() => {
     gap: 8px;
     padding: 4px 8px;
     border: 1px solid var(--line);
-    border-radius: 6px;
-    background: rgb(var(--c-gray-900) / 0.55);
+    border-radius: 0;
+    background: var(--sheet);
   }
 }
 
@@ -1434,7 +1299,7 @@ const rows = computed(() => {
   gap: 8px;
   padding: 4px 8px;
   border: 1px solid var(--line);
-  border-radius: 6px;
+  border-radius: 0;
   font-size: 13px;
 }
 
@@ -1452,7 +1317,6 @@ const rows = computed(() => {
 .ar-tabfa {
   font-size: 18px;
   opacity: 0.75;
-  filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.6));
 }
 
 /* Navigateur tab */
@@ -1488,7 +1352,7 @@ const rows = computed(() => {
   min-height: 0;
   display: flex;
   border: 1px solid var(--line);
-  border-radius: 8px;
+  border-radius: 0;
   overflow: hidden;
   background: #fff;
 }
@@ -1501,16 +1365,16 @@ const rows = computed(() => {
   flex: 1;
   min-height: 0;
   display: flex;
-  gap: 20px;
-  padding-top: 18px;
+  gap: 32px;
+  padding: 24px var(--gutter);
 }
 
 /* Panels: opaque, so the artwork only shows in the header */
 .ar-hub fieldset,
 .ar-main {
   border: 1px solid var(--line);
-  border-radius: 10px;
-  background: rgb(var(--c-gray-900) / 0.94);
+  border-radius: 0;
+  background: var(--sheet);
   margin: 0;
   padding: 14px 16px;
   min-width: 0;
@@ -1522,11 +1386,11 @@ const rows = computed(() => {
   width: 100%;
   margin-bottom: 8px;
   padding: 2px 10px;
-  font-size: 13px;
+  font-size: 11px;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: rgb(var(--c-gray-300));
+  letter-spacing: 0.1em;
+  color: var(--graphite);
 }
 
 .ar-nav {
@@ -1546,15 +1410,14 @@ const rows = computed(() => {
   text-align: left;
   padding: 7px 12px;
   border: none;
-  border-left: 3px solid transparent;
-  border-radius: 8px;
+  border-radius: 0;
   background: transparent;
   font-size: 15px;
   white-space: nowrap;
 }
 
 .ar-hub .ar-nav button:hover {
-  background: rgb(var(--c-gray-800) / 0.7);
+  background: var(--paper);
 }
 
 .ar-catico {
@@ -1562,14 +1425,12 @@ const rows = computed(() => {
   height: 28px;
   object-fit: contain;
   flex: none;
-  filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.6));
 }
 
 .ar-hub .ar-nav button[aria-pressed="true"] {
-  color: var(--fg);
-  font-weight: 500;
-  border-left-color: var(--accent);
-  background: color-mix(in srgb, var(--accent) 22%, transparent);
+  color: var(--violet-deep);
+  font-weight: 600;
+  background: var(--paper);
 }
 
 .ar-main {
@@ -1590,11 +1451,11 @@ const rows = computed(() => {
 
 .ar-main h2 {
   font-family: var(--display);
-  font-weight: 700;
+  font-weight: 500;
   margin: 0;
-  font-size: 1.9rem;
-  letter-spacing: 0;
-  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.8);
+  font-size: clamp(1.9rem, 2.6vw, 2.6rem);
+  line-height: 1.05;
+  letter-spacing: -0.035em;
 }
 
 /* "À jour" status pill */
@@ -1638,8 +1499,8 @@ const rows = computed(() => {
   gap: 10px 18px;
   padding: 10px 16px;
   border: 1px solid var(--line);
-  border-radius: 10px;
-  background: rgb(var(--c-gray-900) / 0.94);
+  border-radius: 0;
+  background: var(--sheet);
   font-size: 14.5px;
 
   b {
@@ -1683,8 +1544,8 @@ const rows = computed(() => {
   font: inherit;
   padding: 6px 10px;
   border: 1px solid var(--line);
-  border-radius: 8px;
-  background: rgb(var(--c-gray-900) / 0.94);
+  border-radius: 0;
+  background: var(--sheet);
   color: var(--fg);
 }
 
@@ -1694,8 +1555,8 @@ const rows = computed(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-top: 12px;
-  padding: 10px 6px 0;
+  margin: 0 var(--gutter);
+  padding: 10px 0 14px;
   border-top: 1px solid var(--line);
   color: var(--muted);
   font-size: 13.5px;
@@ -1730,8 +1591,8 @@ const rows = computed(() => {
   display: flex;
   flex-direction: column;
   border: 1px solid var(--line);
-  border-radius: 10px;
-  background: rgb(var(--c-gray-900) / 0.94);
+  border-radius: 0;
+  background: var(--sheet);
   overflow: hidden;
 }
 
@@ -1754,11 +1615,11 @@ const rows = computed(() => {
 }
 
 .ar-row:hover {
-  background: rgb(var(--c-gray-800) / 0.8);
+  background: var(--paper);
 }
 
 .ar-row--head {
-  background: rgb(var(--c-gray-800) / 0.9);
+  background: var(--paper);
   border-bottom: 1px solid var(--line);
   color: rgb(var(--c-gray-300));
   font-size: 14.5px;
@@ -1767,7 +1628,7 @@ const rows = computed(() => {
 }
 
 .ar-row--head:hover {
-  background: rgb(var(--c-gray-800) / 0.9);
+  background: var(--paper);
 }
 
 .ar-hub .ar-sort {
@@ -1801,7 +1662,6 @@ const rows = computed(() => {
   height: 36px;
   object-fit: contain;
   flex: none;
-  filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.6));
 }
 
 .ar-price {

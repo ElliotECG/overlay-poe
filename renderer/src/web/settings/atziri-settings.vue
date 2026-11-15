@@ -391,7 +391,10 @@
 
   <!-- Overlay colors: applied immediately, remembered on this PC -->
   <div class="atz-palette">
-    <div class="atz-palette-title">{{ tr("Couleurs de l'overlay", "Overlay colors") }}</div>
+    <div class="atz-palette-title">{{ tr("Couleurs des fenêtres en jeu", "In-game window colors") }}</div>
+    <div class="atz-palette-sub" style="text-transform: none; letter-spacing: 0">
+      {{ tr("Vérification du prix, comparaison Path of Building… Le hub et les réglages gardent le style Virtual Hideout.", "Price check, Path of Building comparison… The hub and the settings keep the Virtual Hideout style.") }}
+    </div>
     <div class="atz-palette-sub">{{ tr("Thèmes de la Ritualiste", "Ritualist themes") }}</div>
     <div class="flex flex-wrap gap-2 mb-4">
       <button
@@ -782,7 +785,6 @@ function dayTime(t: number) {
 
 // Background images
 const BG_SLOTS: Array<{ id: BgSlot; label: string; labelEn: string }> = [
-  { id: "hub", label: "Shift + Espace", labelEn: "Shift + Space" },
   { id: "price", label: "Vérification du prix", labelEn: "Price check" },
 ];
 

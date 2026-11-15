@@ -56,23 +56,19 @@ h3 {
   left: var(--atz-x, 10vw);
   right: var(--atz-x, 10vw);
   pointer-events: none;
-  /* sober frame; the artwork shows behind the header, then fades out */
-  border: 1px solid rgb(var(--c-gray-700));
+  /* Virtual Hideout: a sheet of paper over the game (the hub and the
+     settings fill it), lifted by a soft shadow */
   border-radius: 0.75rem;
   box-shadow:
-    0 0 0 1px rgba(0, 0, 0, 0.6),
-    0 1rem 3rem rgba(0, 0, 0, 0.7);
-  background:
-    linear-gradient(
-      180deg,
-      rgb(var(--c-gray-900) / 0.12) 0,
-      rgb(var(--c-gray-900) / 0.4) 100px,
-      rgb(var(--c-gray-900) / 0.93) 180px,
-      rgb(var(--c-gray-900) / 0.96) 100%
-    ),
-    var(--atz-hub-bg, url("/images/ritualiste-bg.webp")) center top / cover no-repeat,
-    rgb(var(--c-gray-900));
+    0 0 0 1px rgba(0, 0, 0, 0.35),
+    0 1.25rem 3rem -0.5rem rgba(0, 0, 0, 0.65);
+  background: #f4f3f6;
   animation: atziri-frame-in 0.18s ease-out;
+}
+
+/* the settings and the hub are editorial pages: plain paper, no artwork */
+.atz-light .atziri-bg {
+  background: rgb(var(--c-gray-900));
 }
 
 /* Corner handle to resize the Atziri frame (double-click resets the size) */

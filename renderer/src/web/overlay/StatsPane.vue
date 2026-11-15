@@ -229,7 +229,7 @@ const groups = computed(() => {
 
 .ar-st-skill select {
   border: 1px solid var(--line);
-  border-radius: 6px;
+  border-radius: 0;
   background: var(--surface);
   color: var(--fg);
   padding: 6px 8px;
